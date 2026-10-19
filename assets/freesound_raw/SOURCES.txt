@@ -1,0 +1,21 @@
+Freesound-Aufnahmen, aus denen tools/make_sounds.py die Sounds in package/sounds schneidet.
+Geladen am 2026-10-15 (Original-WAVs; die .ogg-Dateien sind Freesounds Vorschau-Dateien
+derselben Aufnahmen, von vor der Anmeldung, und werden nur genommen, wenn das WAV fehlt).
+
+Datei                                  Freesound                                 Lizenz     benutzt
+fokker_steady_437717.wav               craigsmith, G01-10 Fokker Biplane Steady   CC0        engine
+nieuport_flyby_437741.wav              craigsmith, G02-17 Nieuport Biplane Fly By CC0        enemy
+spins_dives_437748.wav                 craigsmith, G02-24 Prop Plane Spins+Dives  CC0        spiral1, spiral2
+sustained_dive_437747.wav              craigsmith, G02-23 Sustained Dive (Heulen) CC0        spiral3
+maxim_very_near_160772.wav             poissonmort, Maxim Russian mg very near    CC BY 4.0  shot1-4, shot_tail
+expl_heavy_sharp_674896.wav            craigsmith, S18-06                         CC0        explosion1
+expl_medium_674906.wav                 craigsmith, S18-04                         CC0        explosion2
+expl_dull_674887.wav                   craigsmith, S17-09                         CC0        explosion3
+expl_heavy2_674908.wav                 craigsmith, S17-08                         CC0        explosion4
+
+Vorrat (noch nicht benutzt):
+rotary_revs_idles_437734.wav           craigsmith, G02-10 Rotary Engine Revs/Idles CC0
+rotary_circles_zooms_437713.wav        craigsmith, G01-06 (Umlaufmotor, Blip-Schalter) CC0
+fokker_idles_guns_437722.wav           craigsmith, G01-15 Fokker idles, guns engine CC0
+fokker_zooms_by_437718.wav             craigsmith, G01-11 Fokker Zooms By         CC0
+maxim_160773.wav                       poissonmort, Maxim Russian machinegun      CC BY 4.0

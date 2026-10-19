@@ -1,0 +1,21 @@
+Red Baron Enhanced - the recorded sounds (setting "sounds = samples")
+
+Cut, filtered and resampled from recordings on Freesound (freesound.org) by
+tools/make_sounds.py.
+
+Machine gun (shot1-4.ogg, shot_tail.ogg):
+  "Maxim Russian machinegun very near" by poissonmort
+  https://freesound.org/s/160772/
+  License: Attribution 4.0 (CC BY 4.0), https://creativecommons.org/licenses/by/4.0/
+  Changed: single shots and the echo cut out, mono, resampled to 32 kHz.
+
+All the others: by craigsmith, Creative Commons 0 (public domain): copies of
+Hollywood optical sound effects of the 1930s and 40s.
+  engine.ogg      "G01-10-Fokker Biplane Steady.wav"         https://freesound.org/s/437717/
+  enemy.ogg       "G02-17-Nieuport Biplane Fly By.wav"       https://freesound.org/s/437741/
+  spiral1.ogg, spiral2.ogg  "G02-24-Prop Plane Spins and Dives.wav"  https://freesound.org/s/437748/
+  spiral3.ogg     "G02-23-Prop Plane Sustained Dive.wav"     https://freesound.org/s/437747/
+  explosion1.ogg  "S18-06 Heavy sharp explosion with reverb" https://freesound.org/s/674896/
+  explosion2.ogg  "S18-04 Single explosion; medium; with reverb" https://freesound.org/s/674906/
+  explosion3.ogg  "S17-09 Dull explosion"                    https://freesound.org/s/674887/
+  explosion4.ogg  "S17-08 Single heavy explosions 2"         https://freesound.org/s/674908/
