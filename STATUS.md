@@ -496,3 +496,5 @@ noch niemand. Ob der Menüeintrag erscheint, ohne dass das Menü neu startet, is
 ## Nächste Schritte
 
 Siehe [RESUME.md](RESUME.md).
+
+GitHub-Release (2026-10-19): `v0.5.1` mit demselben Paket wie im Google-Drive-Ordner `games`. Bei jedem neuen Paket im Drive auch ein Release anlegen (`gh release create v<version> <paket>.vpk`).
