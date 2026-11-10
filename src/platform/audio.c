@@ -1,6 +1,5 @@
 #include "platform/audio.h"
 
-#include <SDL.h>
 #include <vectorpie/vp.h>
 
 /* the SDK's Ogg Vorbis decoder (compiled in the SDK; here its declarations) */
@@ -11,52 +10,32 @@
 #include <stdlib.h>
 #include <string.h>
 
-static SDL_AudioDeviceID g_dev;
-static int16_t g_last[2];
-
-static void SDLCALL fill(void *user, Uint8 *stream, int len)
-{
-    rb_sound *snd = (rb_sound *)user;
-    int16_t *out = (int16_t *)stream;
-    int want = len / 4;                 /* pairs of left and right */
-    int got = rb_sound_read(snd, out, want);
-    if (got > 0) { g_last[0] = out[2 * got - 2]; g_last[1] = out[2 * got - 1]; }
-    /* Run dry (the game stalled or is just starting): let the last level
-     * die away instead of clicking. */
-    for (int i = got; i < want; i++)
-        for (int k = 0; k < 2; k++) {
-            g_last[k] = (int16_t)(g_last[k] - g_last[k] / 64);
-            out[2 * i + k] = g_last[k];
-        }
-}
+static vp_audio *g_audio;
+static vp_voice  g_stream;
 
 int rb_audio_open(rb_sound *snd)
 {
-    if (SDL_InitSubSystem(SDL_INIT_AUDIO) != 0) {
-        fprintf(stderr, "redbaron: no sound: %s\n", SDL_GetError());
+    (void)snd;
+    if (vp_audio_open(&g_audio) != VP_OK) {
+        fprintf(stderr, "redbaron: no sound: %s\n", vp_last_error());
+        g_audio = NULL;
         return -1;
     }
-    SDL_AudioSpec want, have;
-    memset(&want, 0, sizeof want);
-    want.freq = RB_SOUND_RATE;
-    want.format = AUDIO_S16SYS;
-    want.channels = 2;
-    want.samples = 1024;
-    want.callback = fill;
-    want.userdata = snd;
-    g_dev = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
-    if (!g_dev) {
-        fprintf(stderr, "redbaron: no sound device: %s\n", SDL_GetError());
+    g_stream = vp_stream_play(g_audio, RB_SOUND_RATE, 1.0f);
+    if (!g_stream) {
+        fprintf(stderr, "redbaron: no sound stream: %s\n", vp_last_error());
+        vp_audio_close(g_audio);
+        g_audio = NULL;
         return -1;
     }
-    SDL_PauseAudioDevice(g_dev, 0);
     return 0;
 }
 
 void rb_audio_close(void)
 {
-    if (g_dev) SDL_CloseAudioDevice(g_dev);
-    g_dev = 0;
+    if (g_audio) vp_audio_close(g_audio);
+    g_audio = NULL;
+    g_stream = 0;
 }
 
 int rb_audio_load_samples(rb_samples *smp)
@@ -93,14 +72,34 @@ int rb_audio_load_samples(rb_samples *smp)
     return missing;
 }
 
-void rb_audio_balance(rb_sound *snd)
+void rb_audio_pump(rb_sound *snd)
 {
-    /* More than a quarter of a second waiting: the device is behind. Drop
-     * what is oldest, down to a tenth of a second. */
-    uint32_t waiting = snd->ring_w - snd->ring_r;
-    if (waiting > RB_SOUND_RATE / 4) {
-        if (g_dev) SDL_LockAudioDevice(g_dev);
-        snd->ring_r = snd->ring_w - RB_SOUND_RATE / 10;
-        if (g_dev) SDL_UnlockAudioDevice(g_dev);
+    /* (in pairs of left and right) The game makes a sixtieth of a second
+     * a picture; the SDK wants 50 to 100 ms written ahead. Above a sixth of
+     * a second waiting the device is behind: what comes is dropped. */
+    const int MOST = RB_SOUND_RATE / 6, LOW = RB_SOUND_RATE / 60, FILL = RB_SOUND_RATE * 6 / 100;
+    static int16_t pcm[2 * 2048];
+    static float out[2 * 2048];
+    static float last[2];
+    int queued = g_audio ? vp_stream_queued(g_audio, g_stream) : MOST;
+    int got;
+    while ((got = rb_sound_read(snd, pcm, 2048)) > 0) {
+        if (!g_audio || queued >= MOST) continue;
+        for (int i = 0; i < 2 * got; i++) out[i] = pcm[i] * (1.0f / 32768.0f);
+        last[0] = out[2 * got - 2];
+        last[1] = out[2 * got - 1];
+        queued += vp_stream_write(g_audio, g_stream, out, got);
+    }
+    /* Nearly dry (just started, or the game stalled): the last level dies
+     * away over enough to be ahead again, instead of a click and gaps. */
+    if (g_audio && queued < LOW) {
+        int n = FILL - queued;
+        if (n > 2048) n = 2048;
+        for (int i = 0; i < n; i++)
+            for (int k = 0; k < 2; k++) {
+                last[k] -= last[k] / 64.0f;
+                out[2 * i + k] = last[k];
+            }
+        vp_stream_write(g_audio, g_stream, out, n);
     }
 }

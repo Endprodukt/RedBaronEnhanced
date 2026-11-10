@@ -1,105 +1,116 @@
 # Red Baron Enhanced
 
-Red Baron (Atari, 1981) als C-Programm für den VectorPie-Automaten und den
-PC, übersetzt aus dem Originalquelltext
+Red Baron (Atari, 1981) as a C program for the VectorPie cabinet and the
+PC, translated from the original source code
 ([historicalsource/red-baron](https://github.com/historicalsource/red-baron))
-und Frame für Frame gegen MAME geprüft.
+and checked frame by frame against MAME.
 
-Schwesterprojekte mit demselben Vorgehen: Battlezone Enhanced, Star Wars
+Sister projects made the same way: Battlezone Enhanced, Star Wars
 Enhanced.
 
-![Attract-Modus](docs/bilder/attract.png)
-![Wie am Automaten (links) und mit Farbe und Verdeckung (rechts)](docs/bilder/farbe_verdeckung.png)
+![Attract mode](docs/images/attract.png)
+![As on the cabinet (left) and with color and occlusion (right)](docs/images/color_occlusion.png)
 
-## Was es ist
+## What it is
 
-* Das ganze Spielprogramm in C: 174 Routinen unter ihren Originalnamen, mit
-  den Kommentaren von 1981, im Speicherbild des Automaten. Kein 6502 im
-  normalen Betrieb.
-* Die Bausteine der Platine nachgebildet: Math Box, Vektorgenerator, POKEY,
-  die diskreten Sounds (Maschinengewehr, Sturzflug, Explosion), EAROM.
-* Bilder, Landschaft, Flugzeuge und Melodien bleiben in den ROMs und werden
-  beim Start aus dem eigenen MAME-Satz `redbaron` gelesen. Sie sind nicht
-  Teil dieses Projekts.
+* The whole game program in C: 174 routines under their original names,
+  with the comments of 1981, in the cabinet's memory map. No 6502 in
+  normal operation.
+* The board's parts emulated: Math Box, vector generator, POKEY, the
+  discrete sounds (machine gun, nose dive, explosion), EAROM.
+* Pictures, landscape, planes and tunes stay in the ROMs and are read at
+  start from your own MAME set `redbaron`. They are not part of this
+  project.
 
-Ergänzungen gegenüber dem Automaten, jede abschaltbar:
+Additions over the cabinet, each one can be switched off:
 
-* **Flüssiges Bild** (`smooth = 3`): 60 Bilder pro Sekunde statt 10, jedes
-  vom Spiel selbst aus dem Zustand dieses Augenblicks gezeichnet, wie bei
-  Star Wars Enhanced.
-* **Farbe** (`color_lines = yes`): der Rote Baron rot, das Land grün,
-  Schüsse gelb, der Zeppelin silber.
-* **Verdeckung** (`occlusion = yes`): Doppeldecker, Berge und Bodenobjekte
-  verdecken, was hinter ihnen liegt.
-* **Bäume und Wolken** (`trees`, `clouds`): gezeichnet mit den Routinen des
-  Spiels, so wie es seine eigenen Objekte am Boden zeichnet.
-* **Kalibrierter Knüppel** (`stick_calibrate = yes`): Das Flugzeug zieht
-  nach dem ersten Ausschlag nicht mehr zur Seite.
-* **Cockpit** (`cockpit = yes`): das Cockpit des Dreideckers aus dem Sitz
-  gesehen: zwei MGs mit Ringvisier, die beim Feuern zurückschlagen, Bug
-  und Propeller, Mittelflügel mit Streben, Spanndrähte, Instrumentenbrett
-  mit Höhenmesser, Fahrtmesser und Waffenthermometer; alles mit Verdeckung.
-  Nur ein Bild, das Spiel bleibt gleich.
+* **Smooth picture** (`smooth = 3`): 60 pictures a second instead of 10,
+  each drawn by the game itself from its state at that moment, as in Star
+  Wars Enhanced.
+* **Color** (`color_lines = yes`): the land green, bullets yellow, the
+  blimp in several colors; the enemy planes (the player flies the Red
+  Baron, the foes are British) khaki with roundels.
+* **Occlusion** (`occlusion = yes`): biplanes, mountains and ground
+  objects hide what lies behind them.
+* **Trees and clouds** (`trees`, `clouds`): drawn with the game's own
+  routines, the way it draws its own objects on the ground.
+* **Calibrated stick** (`stick_calibrate = yes`): the plane no longer
+  drifts to one side after the first deflection.
+* **Cockpit** (`cockpit = yes`): the triplane's cockpit seen from the
+  seat: two machine guns with ring sights that kick as they fire, nose and
+  propeller, middle wing with struts, bracing wires, dashboard with
+  altimeter, airspeed indicator and gun thermometer; all with occlusion.
+  Only a picture, the game stays the same.
 
-![Cockpit](docs/bilder/cockpit.png)
-* **Titel, Highscore-Tafel, Initialeneingabe** (`screens = yes`): eigene
-  Bilder der Spielzustände, mit Eisernem Kreuz, Adler und
-  Fraktur-Schriftzug; leere Tafeln bekommen die Asse von 1917
+![Cockpit](docs/images/cockpit.png)
+* **Title, high score table, initials entry** (`screens = yes`): the
+  port's own pictures of these game states, with iron cross, eagle and
+  Fraktur lettering; empty tables get the aces of 1917
   (`default_scores`).
-* **Highscores im Automaten-Menü**: die Tafel des Spiels erscheint wie bei
-  den anderen VectorPie-Spielen auf dem Marquee und in der Hinweiszeile.
-* **Richtiges Freispiel** (`coin_mode = free`): der Attract läuft, START
-  beginnt ein Spiel.
-* **Echtes Gameplay im Attract** (`attract_demo = yes`): ein Autopilot
-  spielt auf einer zweiten, stummen Maschine; das echte Spiel bleibt
-  unberührt.
-* **Echte Geräusche** (`sounds = samples`): eigener Motor ist ein Fokker-
-  Doppeldecker aus Hollywood-Tonaufnahmen der 30er Jahre (im Sturz
-  schneller, im Steigen langsamer), der anfliegende Gegner ein Nieuport mit
-  Umlaufmotor, das MG ein Maxim (die Waffe des Spandau LMG 08/15),
-  dazu Explosionen und ein trudelndes Flugzeug. Die Melodien bleiben vom
-  POKEY. Aufnahmen von Freesound, Quellen in `package/sounds/CREDITS.txt`;
-  Hörprobe in `docs/hoerprobe/`.
-* **Testmenü** (Service-Taste F2, oder Start und Feuer zwei Sekunden
-  halten), nur das
-  Nötigste: Belegung, analoge oder digitale Steuerung mit Empfindlichkeit
-  und Yoke-Test daneben, Bild- und Spieloptionen, Testbild, Soundtest, Highscores
-  löschen.
+* **High scores in the cabinet's menu**: the game's table shows on the
+  marquee and in the hint bar like those of the other VectorPie games.
+* **Real free play** (`coin_mode = free`): the attract mode runs, START
+  begins a game.
+* **Real gameplay in the attract mode** (`attract_demo = yes`): an
+  autopilot plays on a second, silent machine; the real game is not
+  touched.
+* **Real sounds** (`sounds = samples`): the player's engine is a Fokker
+  biplane from Hollywood sound recordings of the 1930s (faster diving,
+  slower climbing), the enemy coming at you a Nieuport with a rotary
+  engine, the machine gun a Maxim (the gun of the Spandau LMG 08/15), plus
+  explosions and planes spinning down, quieter and duller the farther away
+  they are. The tunes stay the POKEY's. Recordings from Freesound, sources
+  in `package/sounds/CREDITS.txt`; listen in `docs/listen/`.
+* **The cabinet's volumes**: the sound goes through the VectorPie SDK's
+  mixer, so the menu's MUSIC VOLUME applies to it, on top of the game's
+  own VOLUME.
+* **Test menu** (service key F2, or hold start and fire for two seconds),
+  only the essentials: bindings, analog or digital control with
+  sensitivity and a yoke test next to it, picture and game options, test
+  picture, sound test, clearing the high scores.
 
-![Testmenü](docs/bilder/testmenue.png)
-![Titel, Highscore-Tafel, Eingabe, Cockpit](docs/bilder/titel_cockpit.png)
+![Test menu](docs/images/test_menu.png)
+![Title, high score table, entry, cockpit](docs/images/title_cockpit.png)
 
-Der Stand steht in [STATUS.md](STATUS.md).
+The current state is in [STATUS.md](STATUS.md).
 
-## Starten
+## Running
 
 ```bash
 build/pc/redbaron.exe --windowed --roms D:/Mame/roms
 ```
 
-| Aktion (Name in advmame.rc) | Bedeutung |
+| Action (name in advmame.rc) | Meaning |
 |---|---|
-| `p1_stickx`, `p1_sticky` oder `p1_left/right/up/down` | Steuerknüppel |
-| `p1_button1` | Maschinengewehr |
-| `start1` | Start |
-| `coin1`, `coin2` | Münze |
-| `ui_cancel` | Beenden |
-| `service` (F2) | Testmenü (öffnen; speichern und zurück). Die Taste kommt aus `advmame.rc` (`input_map[service]`, wie VectorPies CONTROLS-Einstellungen und AdvanceMAME sie schreiben); steht dort nichts, gilt F2 |
+| `p1_stickx`, `p1_sticky` or `p1_left/right/up/down` | flight stick |
+| `p1_button1` | machine gun |
+| `start1` | start |
+| `coin1`, `coin2` | coin |
+| `ui_cancel` | quit |
+| `service` (F2) | test menu (open; save and back). The key comes from `advmame.rc` (`input_map[service]`, as VectorPie's CONTROLS settings and AdvanceMAME write it); if nothing is there, F2 |
 
-Das ist die Belegung „auto"; im Testmenü lässt sich jede Aktion auf eine
-beliebige Taste, einen Knopf, Hat oder eine Achse legen. Ohne `advmame.rc`
-(am PC) gelten die Vorgaben von AdvanceMAME, üblich sind Pfeiltasten,
-Strg links, 1, 5 und Esc.
+That is the binding "auto"; in the test menu every action can be put on
+any key, button, hat or axis. Without `advmame.rc` (on a PC)
+AdvanceMAME's defaults apply, usually the arrow keys, left Ctrl, 1, 5 and
+Esc.
 
-Einstellungen: `redbaron.ini` (Vorgaben neben dem Programm, eigene in
-`save/redbaron.ini`, die das Testmenü schreibt): Steuerung und Belegung,
-Bildausschnitt und Ränder, Helligkeit, Farbe, Lautstärke, Sprache,
-Bonusleben, Leben, Münzen. Die Highscores liegen in `save/earom.bin`.
+Settings: `redbaron.ini` (defaults next to the program, your own in
+`save/redbaron.ini`, which the test menu writes): controls and bindings,
+picture area and margins, brightness, color, volume, sounds, language,
+bonus lives, lives, coins. The high scores are in `save/earom.bin` (and,
+for the menu, in `save/highscores.txt`).
 
-`--original` lässt zum Vergleich das Originalprogramm auf einem
-6502-Kern laufen.
+`--original` runs the original program on a 6502 core for comparison.
 
-## Bauen und Prüfen
+## Installing on the cabinet
 
-Siehe [BUILD.md](BUILD.md). Wie es innen aussieht und wie man weitermacht:
+Download `rbenhanced-<version>.vpk` from the
+[releases](https://github.com/Endprodukt/RedBaronEnhanced/releases), put it
+in a USB drive's `games/` folder and plug the drive in (or copy it to
+`/persistent/games/packages/`), then Settings -> GAMES -> INSTALL GAMES.
+The game needs the MAME ROM set `redbaron` in the cabinet's ROM folder.
+
+## Building and checking
+
+See [BUILD.md](BUILD.md). How it looks inside and how to carry on:
 [RESUME.md](RESUME.md).

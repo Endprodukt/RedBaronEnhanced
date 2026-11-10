@@ -1,500 +1,505 @@
 # Status
 
-Stand: 2026-10-14
+As of: 2026-11-10 (version 0.6.0)
 
-## Ziel
+## Goal
 
-Red Baron (Atari, 1981) vollständig und unverändert in C, geprüft gegen
-MAME. Danach Ergänzungen wie bei Battlezone Enhanced und Star Wars
-Enhanced (flüssiges Bild, Ton, Farbe), jede abschaltbar.
+Red Baron (Atari, 1981) complete and unchanged in C, checked against
+MAME. Then additions as in Battlezone Enhanced and Star Wars Enhanced
+(smooth picture, sound, color), each one switchable.
 
-Der erste Teil ist erreicht. Ergänzungen (2026-10-14, Wünsche des
-Besitzers): Zwischenbilder genau wie bei Star Wars, Kalibrierung des
-Knüppels, Farbe, Verdeckung, Bäume und Wolken, Testmenü (0.3.0); Freispiel,
-Titel, Highscore-Tafel, Initialeneingabe und Cockpit (0.4.0).
+The first part is reached. Additions (the owner's wishes): pictures
+between the frames exactly as in Star Wars, stick calibration, color,
+occlusion, trees and clouds, test menu (0.3.0); free play, title, high
+score table, initials entry and cockpit (0.4.0); recorded sounds (0.5.0,
+0.5.1); high scores in the cabinet's menu (0.5.2); VectorPie SDK 0.9.0,
+the sound through the SDK's mixer at the menu's volume (0.6.0).
 
-## Was läuft
+## What runs
 
-Das Spiel als C-Programm (`src/game`, 174 Routinen, rund 9.000 Zeilen),
-erzeugt aus dem Quelltext von 1981:
+The game as a C program (`src/game`, 174 routines, about 9,000 lines),
+generated from the source code of 1981:
 
-* `tools/mac65.py` assembliert `upstream/` und vergleicht mit den ROMs:
-  13.408 von 14.336 Bytes, 0 Abweichungen. Der Rest ist der Selbsttest
-  (die Include-Datei MBDIAG fehlt im Repository).
-* `tools/mac2c.py` schreibt daraus die C-Routinen: Originalnamen,
-  Originalkommentare, ein Makro je 6502-Befehl.
-* Der Quelltext ist MAMEs Satz `redbaron` (alle sieben Programm-ROMs gleich).
+* `tools/mac65.py` assembles `upstream/` and compares with the ROMs:
+  13,408 of 14,336 bytes, 0 differences. The rest is the self test (the
+  include file MBDIAG is missing from the repository).
+* `tools/mac2c.py` writes the C routines from it: original names,
+  original comments, one macro per 6502 instruction.
+* The source is MAME's set `redbaron` (all seven program ROMs the same).
 
-Das Programm `redbaron` (Fenster am PC, über das VectorPie-SDK): Bild mit
-60 Bildern pro Sekunde, Ton (POKEY, Maschinengewehr, Sturzflug,
-Explosion), Steuerung frei belegbar, Testmenü auf der Service-Taste (F2),
-Einstellungen und
-Optionsschalter in `redbaron.ini` (eigene in `save/redbaron.ini`), EAROM
-(Highscores) in `save/earom.bin`. Im normalen
-Betrieb läuft kein 6502; `--original` lässt zum Vergleich das
-Originalprogramm auf dem 6502-Kern laufen.
+The program `redbaron` (a window on the PC, the vector board on the
+cabinet, through the VectorPie SDK): picture at 60 pictures a second,
+sound (POKEY, machine gun, nose dive, explosion; or recordings), freely
+bindable controls, test menu on the service key (F2), settings and option
+switches in `redbaron.ini` (your own in `save/redbaron.ini`), EAROM (high
+scores) in `save/earom.bin`. In normal operation no 6502 runs;
+`--original` runs the original program on the 6502 core for comparison.
 
-## Was der Port hinzufügt
+## What the port adds
 
-Die Spielmechanik ist unverändert. Alle Vergleiche gegen MAME sind nach
-diesen Ergänzungen weiter vollständig gleich.
+The game mechanics are unchanged. All comparisons against MAME are still
+completely the same after these additions.
 
-* **Flüssiges Bild aus dem Spielzustand** (`smooth = 3`, Standard;
-  `render/subframe.c`, nach `subframe.c` von Star Wars Enhanced). Das Spiel
-  bewegt alles 10,25-mal pro Sekunde (MAIN bis zur Marke `20$`) und
-  zeichnet dann (MAIN_VIEW; der Übersetzer teilt MAIN dort). Für jedes Bild
-  dazwischen werden Blickrichtung, Höhe und Schräglage des Spielers, die
-  Flugzeuge, Drohnen und der Zeppelin samt Winkeln, die Berge und Bodenziele
-  und alle Schüsse auf ihrem Weg vom einen Frame zum nächsten eingesetzt,
-  und die Zeichenroutinen des Spiels rechnen das Bild dieses Augenblicks
-  auf einer Kopie der Maschine neu. Ohne Verzögerung: das C rechnet ein
-  Frame gleich nach dem Pufferwechsel, beide Enden sind also bekannt,
-  sobald ein Frame auf dem Schirm steht. Die Propeller dreht wie im
-  Original der Interrupt. `smooth = 0`: jedes Frame wie am Automaten.
-* **Zwischenbilder für explodierende Flugzeuge und Drohnen** (2026-10-14):
-  bisher wurden nur Flugzeuge mit Status A (aktiv) interpoliert, die übrigen
-  sprangen mit 10 Hz; jetzt jedes gezeigte (A, E Explosion, die
-  Drohnenzustände ED/P/F), solange es dieselbe Art bleibt. Das Aufplatzen
-  der Trümmer folgt dem Zähler des Spiels (Byte 7) und springt weiter.
-* **Initialeneingabe mit dem Yoke** (`platform/controls.c`): LETCHK ändert
-  den Buchstaben, solange ein Poti im obersten oder untersten Achtel steht,
-  und schaut auf beide Achsen. Ein Yoke kommt da ungenau und schräg hin.
-  Während der Eingabe (GAMODE xxxx0111) bekommt das Spiel nur die stärker
-  ausgelenkte Achse, und die ganz (ab 45 %) oder gar nicht.
-* **Highscore oben rechts größer** (`render/screens.c`): HIGH SCORE und
-  Wert/Initialen 1,7-fach, um ihre obere Mitte, auf dem Schirm gehalten
-  (mit `screens`).
-* **Zeppelin** (`render/subframe.c`, `render/color.c`): Fliegt einer vorbei,
-  setzt das Spiel im selben Objekt sofort den nächsten weit hinten ein; die
-  Zwischenbilder schoben ihn dabei quer über den Schirm ("teleportiert").
-  Für den Zeppelin gilt ein Schritt über 400 hex in X, Y oder Z jetzt als
-  neues Objekt (er bewegt sich 80 hex je Frame). Farben nach seinen Teilen
-  (DBLIMP, immer gleiche Reihenfolge, `rb_color_mark`): Hülle silbern, ein
-  roter Ring, zwei stahlblaue, die Gondel messing.
-* **Überhitzen der MGs**: im Spiel vorhanden und geprüft (nach rund 6 s
-  Dauerfeuer GUN.ST D6, die MGs schweigen, rot GUNS OVERHEATED über der
-  Mitte, nach dem Loslassen in rund 1 s abgekühlt). Im Cockpit werden die
-  Kühlmäntel ab halber Hitze orange und blinken überhitzt rot.
-* **Explosionen** (`explosions = yes`; `render/fx.c`): Wo Trümmer erscheinen
-  (Modell PIECES oder Kennung EXPLOSION, im Bild davor keine), ein
-  Feuerball um ihre Mitte: Blitzkreuz, ein unregelmäßiger Ring, wachsend
-  und verglühend (weiß, orange, rot), acht Funken nach außen und fallend,
-  0,7 s, rund 20 Linien; hinter dem Cockpit verdeckt.
-* **Echtes Gameplay im Attract** (`attract_demo = yes`; `render/demo.c`):
-  Im Original fliegt im Attract nur ein Flugzeug heran und rückwärts
-  wieder weg (an MAMEs Aufnahme geprüft; dem Besitzer zu unsinnig, ein
-  erster Versuch, es umdrehen zu lassen, wieder entfernt). Stattdessen
-  spielt eine zweite, stumme Maschine (dasselbe C-Programm, eigenes EAROM,
-  nie gespeichert) ein Spiel: selbst bemünzt und gestartet, gesteuert vom
-  Zielautomaten der MAME-Aufnahmen (steuert nach der Bildposition des
-  Gegners, PLSTAT+8..B, probiert die Richtung aus, feuert jeden vierten
-  Frame), nach Spielende das nächste. Gezeigt wird ihr Bild, solange das
-  echte Spiel im Attract die Welt zeigt (GAMODE 00); darüber INSERT COINS,
-  was eine Münze kauft, CREDITS und der Highscore des echten Spiels (oder
-  die Freispiel-Texte). Titel und Tafel kommen wie bisher. Das echte Spiel
-  läuft darunter unverändert und nimmt Münzen und START an. Die Demo-Maschine
-  läuft nur, solange sie gezeigt wird.
-* **Kalibrierung des Knüppels** (`stick_calibrate = yes`, Standard;
-  `rb_stick_calibrate` in `game/frame.c`). Ursache des Ziehens: Der
-  Interrupt lernt den Bereich jeder Achse erst aus den Bewegungen des
-  Spielers (POTMIN, PTRNGE, POT READING ROUTINE in RBGRND.MAC), POTSCL
-  nimmt die Mitte dieses Bereichs als Mitte des Knüppels. Nach dem ersten
-  Ausschlag zur einen Seite steht der losgelassene Knüppel am Rand des
-  gelernten Bereichs und gilt als halb zur anderen Seite gedrückt: einmal
-  rechts, dann losgelassen, gibt eine volle Linkskurve (PLDELX -30), bis
-  der Knüppel einmal ganz links war. Weil der Port die Lesewerte selbst
-  erzeugt (64 bis 192, Mitte 128), werden Untergrenze und Bereich beim
-  Einschalten gleich richtig gesetzt. Die Routine lernt danach weiter wie
-  im Original.
+* **Smooth picture from the game's state** (`smooth = 3`, default;
+  `render/subframe.c`, after `subframe.c` of Star Wars Enhanced). The game
+  moves everything 10.25 times a second (MAIN up to the label `20$`) and
+  then draws (MAIN_VIEW; the translator splits MAIN there). For every
+  picture in between, the player's heading, height and bank, the planes,
+  drones and the blimp with their angles, the mountains and ground targets
+  and all shells are put on their way from one frame to the next, and the
+  game's drawing routines compute the picture of that moment on a copy of
+  the machine. No delay: the C computes a frame right after the buffer
+  swap, so both ends are known as soon as a frame is on the screen. The
+  propellers turn as in the original, by the interrupt. `smooth = 0`:
+  every frame as on the cabinet.
+* **Pictures between frames for exploding planes and drones**: every
+  shown object (A, E explosion, the drone states ED/P/F) is interpolated
+  as long as it stays the same kind. The bursting of the debris follows the
+  game's counter (byte 7) and still jumps.
+* **Initials entry with the yoke** (`platform/controls.c`): LETCHK changes
+  the letter while a pot is in its top or bottom eighth and looks at both
+  axes. A yoke gets there imprecisely and at a slant. During the entry
+  (GAMODE xxxx0111) the game gets only the more deflected axis, and that
+  either fully (from 45 %) or not at all.
+* **High score top right larger** (`render/screens.c`): HIGH SCORE and
+  value/initials 1.7 times, about their top middle, kept on the screen
+  (with `screens`).
+* **Blimp** (`render/subframe.c`, `render/color.c`): when one has flown
+  past, the game at once puts the next one far back into the same object;
+  the pictures between frames used to push it across the screen
+  ("teleported"). For the blimp a step over 400 hex in X, Y or Z now
+  counts as a new object (it moves 80 hex a frame). Colors by its parts
+  (DBLIMP, always in the same order, `rb_color_mark`): silver envelope, a
+  red band, two steel blue rings, a brass gondola.
+* **Overheating machine guns**: in the game and checked (after about 6 s
+  of continuous fire GUN.ST D6, the guns go quiet, GUNS OVERHEATED in red
+  above the middle, cooled about 1 s after letting go). In the cockpit the
+  gun jackets turn orange from half the heat and blink red when
+  overheated.
+* **Explosions** (`explosions = yes`; `render/fx.c`): where debris appears
+  (model PIECES or tag EXPLOSION, none in the picture before), a fireball
+  around its middle: a flash cross, a ragged ring growing and cooling
+  (white, orange, red), eight sparks flying out and falling, 0.7 s, about
+  20 lines; hidden behind the cockpit.
+* **Real gameplay in the attract mode** (`attract_demo = yes`;
+  `render/demo.c`): in the original only a plane flies at the player in
+  the attract mode and backs away again (checked against MAME's recording;
+  too silly for the owner, a first attempt to turn it round removed
+  again). Instead a second, silent machine (the same C program, its own
+  EAROM, never saved) plays a game: coins in and started by itself,
+  steered by the aiming automaton of the MAME recordings (steers by the
+  enemy's screen position, PLSTAT+8..B, tries the direction, fires every
+  fourth frame), the next one after game over. Its picture is shown while
+  the real game shows the world in the attract mode (GAMODE 00); over it
+  INSERT COINS, what a coin buys, CREDITS and the real game's high score
+  (or the free play texts). Title and table come as before. The real game
+  runs underneath unchanged and takes coins and START. The demo machine
+  runs only while it is shown.
+* **Stick calibration** (`stick_calibrate = yes`, default;
+  `rb_stick_calibrate` in `game/frame.c`). Why the plane drifted: the
+  interrupt learns each axis's range only from the player's moves (POTMIN,
+  PTRNGE, POT READING ROUTINE in RBGRND.MAC), POTSCL takes the middle of
+  that range as the stick's middle. After the first deflection to one side
+  the released stick sits at the edge of the learnt range and counts as
+  half pushed to the other side: once right, then let go, gives a full
+  left turn (PLDELX -30) until the stick has been fully left once. Since
+  the port makes the readings itself (64 to 192, middle 128), the lower
+  limit and the range are set right at power on. The routine goes on
+  learning as in the original.
+* **Color** (`color_lines = yes`, default; `render/color.c`). Every line
+  carries what it belongs to (`core/tags.h`): the translator puts a tag
+  around the calls of the drawing routines (`TAG_AT` in `tools/mac2c.py`,
+  `RB_TAGGED`), the machine remembers it for every word of the vector RAM,
+  the vector generator passes it on with every line, also for the pictures
+  the game builds as subroutines in the vector RAM (plane, drone,
+  propeller). Colors: the player is the Red Baron, the foes are British:
+  the enemy biplane khaki (PC10 of a Sopwith Camel, light enough for the
+  tube) with roundels (blue ring, red middle, in perspective on the upper
+  wing near the tips, from points 12, 13, 29, 30 of DB.PLN,
+  `rb_fx_roundels`, with `color_lines`), propeller white, drones
+  (escorts) in the same khaki (the game turns a drone into the enemy; with
+  a color of its own it changed color doing so), land and horizon green,
+  mountains yellow green, ground targets earth colored, flak orange,
+  bullets yellow, explosions golden, blimp in its parts' colors, bullet
+  holes white, high score pages gold; score, texts and lives in the
+  cabinet's blue. `color_lines = no`: everything in the one color.
+* **Occlusion** (`occlusion = yes`, default; `render/solid.c`, after
+  Battlezone). What hides:
+  * the biplane: faces entered by hand after its points in the ROM
+    (DB.PLN): both wings, the fuselage as an octagonal pyramid with a
+    nose, fin and tailplane;
+  * the ground objects (PFLOB: tent, tree, gun, bunker): their closed
+    outlines, a little in front of the mountain they stand on;
+  * the mountains: the land under the ridge down to its foot, from the
+    landscape's points in the ROM (SSEGS) and the drawn points' places on
+    the screen (an affine map, since a mountain stands flat at one
+    distance);
+  * trees and clouds (below).
+  Where every point lies on the screen and how far away, DECODE notes
+  while drawing (`rb_note_point`, through `INSERT_AFTER` in the
+  translator; calls with `NOTE_AT` get a number of their own per drawing,
+  `vginst`). Lines of these things and the horizon are cut where something
+  nearer stands in front. Shells, explosions, drones, texts and the own
+  propeller never.
+* **Explosions in the plane's color**: the parts of a bursting biplane
+  stay khaki, those of a drone too; only the flash of a hit ground object
+  (EXCRCL) is golden.
+* **Colored ground objects**: part colors by their points: tent (canvas
+  sand, pole brown), tree (trunk brown, crown green), gun (base grey,
+  turret olive), bunker (walls concrete grey, sides darker, roof red
+  brown).
+* **Trees and clouds** (`trees`, `clouds`, on by default;
+  `render/deco.c`). Drawn with the game's own routines, the way it draws
+  its objects on the ground (POSITP, SETBM, PROJECT, DECODE): they move,
+  tilt with the horizon and get smaller with distance like the mountains.
+  Trees: the game's tree shape and a fir after it, two thirds the size,
+  on a fixed grid of the world the player flies through; one in every
+  tenth cell, about 12 in the picture on average, at most 20, between depth
+  400 and F00 (hex; the horizon is at 1000). Clouds: long flat outlines
+  behind the mountains, high up, in every fourth cell, at most 8. They are
+  in a copy of the display list (the free second buffer), the game notices
+  nothing.
+  **Fading in instead of popping up** (the owner's wish): trees get
+  brighter smoothly over the last 500 (hex) of depth before F00, clouds
+  fade in at the back and out at the front (`rb_deco_fade`; the drawing
+  multiplies the brightness by it, since the game's 15 steps are too
+  coarse). When the world appears anew (game start, new life, after the
+  high score pages) they all fade in together in one second. The upper
+  limit hardly matters any more (1 % of the pictures instead of all the
+  time); before, distant trees were missing because of it and appeared in
+  the middle of the picture when a near one went. Measured with
+  `_scratch/fadecheck.c` (2 minutes of play, pictures between frames as in
+  the program): of about 350 newly appearing trees all come in either
+  faint or at the edge of the picture. The projection is measured
+  (`_scratch/probe.c`): 400 * dx / d to the side, 400 * (height - I4YPOS)
+  / d + 40 up.
+* **Test menu** (service key, or hold start and fire for two seconds;
+  `platform/menu.c`, after Battlezone Enhanced). The game stands still
+  while it is open; the service key saves to `save/redbaron.ini` and goes
+  back. The service key is AdvanceMAME's action `service` as `advmame.rc`
+  binds it (VectorPie's CONTROLS settings and AdvanceMAME's menu write
+  there); if nothing or "auto" is there, F2 as in MAME. The menu's hint
+  names the key. Tab no longer opens the menu (Tab is AdvanceMAME's UI
+  CONFIG).
+  Only basic functions (the rest is in `redbaron.ini`). Pages:
+  * CONTROLS: stick analog (keys and digital stick work as well) or
+    digital, sensitivity (digital: how fast the held stick deflects,
+    `digital_rate`; analog: `gain`); bindings of the stick axes,
+    directions, fire, start, coin (fire on the line, then a key, button or
+    axis; left/right back to "auto" = advmame.rc); up and down reversed.
+    `platform/controls.c`. Next to it, live, the yoke test: the stick as
+    the game gets it (cross), the analog axes (square), the pot readings,
+    fire/start/coin.
+  * PICTURE: smooth motion, colors, occlusion, trees, clouds, cockpit,
+    title and high scores, gameplay in attract, explosions, brightness.
+  * TEST PICTURE: a crosshatch with border and circle.
+  * SOUND: volume, sounds (RECORDINGS/ORIGINAL), engine volume, sound
+    test (machine gun, explosion, nose dive, engine, plane closing, POKEY
+    tone).
+  * GAME OPTIONS: planes, bonus, language, coins. Take effect at once.
+  * RESET HIGH SCORES (fire twice): the table to zero (with
+    `default_scores` the aces again), the game's EAROM routine writes it
+    with checksums (as after a new entry).
+* **High scores in the VectorPie menu** (marquee, hint bar): `game.ini`
+  `hiscores = yes`; the game also writes its table (HSCRES, 7 entries, BCD
+  times 10) as `save/highscores.txt` in the SDK's format
+  (`scores_text`/`scores_file` in `main.c`) once it has changed, not
+  during the initials entry and not while the EAROM is busy; a new file,
+  then renamed. Checked on the PC (7 aces in the file); whether the menu
+  shows them has not been seen on the cabinet yet (the menu may read
+  `game.ini` only after it restarts).
+* **Free play** (`coin_mode = free`, in the menu COINS: FREE PLAY;
+  `main.c`). The board's free play switch puts two credits in at once in
+  the attract mode and stands at PRESS START for ever (CREDIT in
+  RBARON.MAC), the attract mode no longer runs. Here the board is set to
+  "1 coin 1 play"; START in the attract mode gives the game its coin (the
+  coin switch for one pulse) and holds START until the game begins.
+  Instead of INSERT COINS and CREDITS it says FREE PLAY and, blinking,
+  PRESS START (in the game's language).
+* **New screens** (`screens = yes`; `render/screens.c`): on the game's own
+  pages (GAMODE) other pictures of the same state; what the game draws
+  there (tag STATES) is left out.
+  * Title instead of the banner (GAMODE 13): stripes slide in, the circle
+    draws itself, the iron cross turns in, the eagle's head fades in, "Red
+    Baron" writes itself in a Fraktur hand (broad nib, both edges of the
+    nib drawn); then every 4 s a shine across the lettering. After the
+    flyer and the marquee.
+  * High score table (GAMODE x3): the heading drops in, two small turning
+    crosses, the lines slide in one after another, first place changes
+    color.
+  * Initials entry (GAMODE x7): NEW RECORD blinking, score and place, three
+    boxes (letters centred by their visible width), the chosen one red
+    with arrows, hints in the game's language, a bar for the time left
+    (TIMER). Used as on the cabinet (stick up/down changes, fire takes:
+    LETCHK, STATES).
+  INSERT COINS and what a coin buys move down on these pages. Texts in the
+  game's own font (`render/glyph.c`: the vector ROM's character routines
+  run once through the vector generator and kept as lines, freely scaled
+  and slanted; hyphen and dot are missing in the game).
+* **Aces in an empty table** (`default_scores = yes`; `main.c`): if the
+  table is empty after power on (or after RESET HIGH SCORES), the empty
+  places hold MVR 20000, UDT 15000, LOE 12000, VOS 10000, BOE 8000, IMM
+  6000, JAC 4000, always below the last real entry; the EAROM is written
+  through the game's routine. So the attract mode shows the table (the
+  game does that only when it is not empty).
+* **Cockpit** (`cockpit = yes`; `render/cockpit.c`): the cockpit of a
+  Fokker Dr.I seen from the seat, after a photo of the owner's (a small 3D
+  model, vanishing point in the middle of the picture): two Spandau
+  machine guns near the middle, their receivers on the dashboard (jacket
+  with holes, muzzle, rear and front sight, ring sights with cross hairs
+  in front); the nose as wide as the fuselage (the guns lie on top), in
+  front of it the propeller stylised as in the films (a smooth swish arc at
+  every blade tip, bright at the front, trailing off, a fainter one
+  further in, turned 27 degrees a picture; no circle; the game's own
+  propeller, three strokes at the bottom, goes with the cockpit); the
+  middle wing left and right, on it two struts each leaning out to the
+  upper wing; two crossed bracing wires, a small windscreen; closed down
+  to the corners at the bottom, no view out; the dashboard with altimeter
+  (I4YPOS), airspeed indicator (faster in a dive: PLDELY) and gun
+  thermometer (GUN.ST, blinks red when overheated). The guns kick in turn
+  as they fire, as the game fires them in turn (S.XFLG D6), with muzzle
+  flash. Occlusion of its own: guns and struts are bodies of faces, only
+  the visible edges are drawn (back faces gone, for barrels and struts
+  only the outline; what one part hides of another is gone). The world
+  (land, mountains, planes, blimp, shells, the own propeller) and the
+  copyright line vanish behind all parts (`rb_solid.front`); the game's
+  texts and displays stay in front, and so do the bullets: the game starts
+  them low at the sides (about x +-200, y -60), where the wings and struts
+  are now; hidden they could not be seen. Only a picture: nothing changes
+  in the game. Also shown in the attract mode with the world, not on
+  title/table/entry.
+* **Recorded sounds** (`sounds = samples`, test menu SOUND -> SOUNDS
+  RECORDINGS/ORIGINAL; `sound/samples.c`, files in `package/sounds`, cut
+  by `tools/make_sounds.py` from Freesound recordings in
+  `assets/freesound_raw`, sources in `package/sounds/CREDITS.txt`). The
+  recordings hang on the same signals as the board (latch 1808 and the
+  POKEY), nothing changes in the game:
+  * own engine: the hum (POKEY channels 3/4, AUDC A1) becomes a Fokker
+    biplane (Hollywood optical sound of the 1930s, "G01-10 Fokker Biplane
+    Steady", a 14 s loop with a crossfade); faster and louder in a dive,
+    slower climbing (PLDELY, as the airspeed indicator); a volume of its
+    own, `engine_volume` (test menu ENGINE VOLUME);
+  * the enemy coming at the player (AUDF3 below F8): a Nieuport with a
+    rotary engine, higher and louder as the original's tone rises;
+  * machine gun: every rise of the shot bit (15 times a second) one
+    single shot of a Maxim (the gun of the LMG 08/15, 4 variants), the echo
+    when firing stops; the enemy's fire quieter and lower (own fire: SWSTAT
+    D7 and not overheated);
+  * explosion: the crash level rises -> one of 4 explosions, as loud as
+    the level;
+  * spiral (D1): a plane spinning down, each one different: one of three
+    recordings (the Warner Brothers spin early and late, a dive's whine),
+    pitch 0.9 to 1.12, falling by 15 to 35 % in 3 to 5 s, starting at a
+    random place, getting quieter as it falls;
+  * spiral and explosion by distance: the hit motion object (PLOBDB,
+    status D6) by X and Z, volume (400 / distance)^0.8 between 0.2 and 1,
+    duller far off (a low pass down to about 800 Hz); the own crash
+    (GMEND1 D7) full, ground targets 0.6.
+  The jingles (points, bonus life, new plane, 300 points) stay the
+  POKEY's. Channels 3/4 are muted only while they carry the hum (AUDC A1),
+  a jingle on them is heard. All files mono (one speaker), Ogg Vorbis;
+  16 kHz for the old optical recordings (only noise above that,
+  measured), 32 kHz for the machine gun; 363 KB together.
+* **The sound through the SDK's mixer** (0.6.0; `platform/audio.c`): the
+  samples the emulation makes go out as the game's own SDK stream
+  (`vp_stream_play`, SDK 0.9.0) instead of an SDL device of the game's own.
+  On the cabinet the VectorPie menu's MUSIC VOLUME applies to it (the SDK
+  mixes every game's streams at that level; the owner chose MUSIC over
+  SOUND, 2026-11-10), on top of the game's own VOLUME; the menu's MASTER
+  VOLUME is the system's. About 50 to 160 ms are kept queued in the stream;
+  when it nearly runs dry the last level dies away over 60 ms instead of
+  clicking. Checked on the PC: a POKEY tone arrives in the SDK's mix
+  (`_scratch/streamtest.c`, `vp_audio_recent`).
 
-* **Farbe** (`color_lines = yes`, Standard; `render/color.c`). Jede Linie
-  trägt, wozu sie gehört (`core/tags.h`): Der Übersetzer setzt um die
-  Aufrufe der Zeichenroutinen eine Kennung (`TAG_AT` in `tools/mac2c.py`,
-  `RB_TAGGED`), die Maschine merkt sie sich zu jedem Wort des Vektor-RAM,
-  der Vektorgenerator gibt sie mit jeder Linie weiter, auch für die Bilder,
-  die das Spiel als Unterprogramme im Vektor-RAM baut (Flugzeug, Drohne,
-  Propeller). Farben: Der Spieler ist der Rote Baron, die Gegner sind
-  Briten: feindlicher Doppeldecker khaki (PC10 einer Sopwith Camel, hell
-  genug für die Röhre) mit Kokarden (blauer Ring, roter Kern, perspektivisch
-  auf dem Oberflügel nahe den Spitzen, aus den Punkten 12, 13, 29, 30 von
-  DB.PLN, `rb_fx_roundels`, mit `color_lines`), Propeller weiß, Drohnen
-  (Begleiter) im selben Khaki (das Spiel macht eine Drohne zum Gegner; mit
-  eigener Farbe wechselte sie dabei die Farbe), Land und Horizont grün, Berge gelbgrün, Bodenziele erdfarben,
-  Flak orange, Schüsse gelb, Explosionen goldgelb, Zeppelin silber,
-  Einschusslöcher weiß, Highscore-Seiten gold; Punkte, Texte und Leben im
-  Blau des Automaten. `color_lines = no`: alles in der einen Farbe.
-* **Verdeckung** (`occlusion = yes`, Standard; `render/solid.c`, nach
-  Battlezone). Was verdeckt:
-  * der Doppeldecker: Flächen fest eingetragen nach seinen Punkten im ROM
-    (DB.PLN): beide Flügel, Rumpf als achteckige Pyramide mit Nase, Seiten-
-    und Höhenleitwerk;
-  * die Bodenobjekte (PFLOB: Zelt, Baum, Geschütz, Bunker): ihre
-    geschlossenen Umrisse, etwas vor dem Berg, auf dem sie stehen;
-  * die Berge: das Land unter dem Grat bis zum Fuß, aus den Punkten der
-    Landschaft im ROM (SSEGS) und der Lage der gezeichneten Punkte auf dem
-    Schirm (eine affine Abbildung, weil ein Berg flach in einer Entfernung
-    steht);
-  * Bäume und Wolken (unten).
-  Wo jeder Punkt auf dem Schirm liegt und wie weit weg, notiert DECODE beim
-  Zeichnen (`rb_note_point`, per `INSERT_AFTER` im Übersetzer; Aufrufe mit
-  `NOTE_AT` bekommen eine eigene Nummer je Zeichnung, `vginst`). Geschnitten
-  werden Linien dieser Dinge und der Horizont, wo etwas Näheres davor
-  steht. Schüsse, Explosionen, Drohnen, Texte und der eigene Propeller nie.
-* **Explosionen in der Farbe des Flugzeugs**: Die Teile eines zerplatzenden
-  Doppeldeckers bleiben khaki, die einer Drohne ebenso; nur der Blitz eines
-  getroffenen Bodenobjekts (EXCRCL) ist goldgelb.
-* **Farbige Bodenobjekte**: Teilefarben nach ihren Punkten: Zelt (Plane
-  sandfarben, Stange braun), Baum (Stamm braun, Krone grün), Geschütz
-  (Sockel grau, Aufbau oliv), Bunker (Wände betongrau, Seiten dunkler,
-  Dach rotbraun).
-* **Bäume und Wolken** (`trees`, `clouds`, Standard an; `render/deco.c`).
-  Gezeichnet mit den Routinen des Spiels selbst, so wie es seine Objekte am
-  Boden zeichnet (POSITP, SETBM, PROJECT, DECODE): sie wandern, neigen sich
-  mit dem Horizont und werden mit der Entfernung kleiner wie die Berge.
-  Bäume: die Baumform des Spiels und eine Tanne danach, zwei Drittel so
-  groß, auf einem festen Raster der Welt, durch das der Spieler fliegt;
-  in jeder zehnten Zelle einer, im Mittel rund 12 im Bild, höchstens 20,
-  zwischen Tiefe 400 und F00 (hex; der Horizont liegt bei 1000). Wolken:
-  lange flache Umrisse hinter den Bergen, hoch oben, in jeder vierten
-  Zelle, höchstens 8. Sie liegen in einer Kopie der Displayliste (der freie
-  zweite Puffer), das Spiel merkt nichts.
-  **Einblenden statt Aufploppen** (2026-10-14, Wunsch des Besitzers): Bäume
-  werden über die letzten 500 (hex) Tiefe vor F00 stufenlos heller, Wolken
-  blenden hinten ein und vorn aus (`rb_deco_fade`; die Zeichnung
-  multipliziert die Helligkeit damit, weil die 15 Stufen des Spiels dafür
-  zu grob sind). Erscheint die Welt neu (Spielstart, neues Leben, nach den
-  Highscore-Seiten), blenden alle zusammen in einer Sekunde ein. Die
-  Obergrenze greift kaum noch (1 % der Bilder statt ständig); vorher fehlten
-  ferne Bäume wegen ihr und tauchten mitten im Bild auf, wenn ein naher
-  verschwand. Gemessen mit `_scratch/fadecheck.c` (2 Minuten Spiel,
-  Zwischenbilder wie im Programm): von rund 350 neu erscheinenden Bäumen
-  kommen alle entweder schwach oder am Bildrand herein. Die Projektion ist ausgemessen (`_scratch/probe.c`): 400 * dx / d
-  zur Seite, 400 * (Höhe - I4YPOS) / d + 40 nach oben.
-* **Testmenü** (Service-Taste, oder Start und Feuer zwei Sekunden halten;
-  `platform/menu.c`, nach Battlezone Enhanced). Das Spiel steht, solange es
-  offen ist; die Service-Taste speichert nach `save/redbaron.ini` und
-  kehrt zurück. Die Service-Taste ist AdvanceMAMEs Aktion `service`, wie
-  `advmame.rc` sie belegt (dorthin schreiben VectorPies CONTROLS-Einstellungen
-  und AdvanceMAMEs Menü); steht dort nichts oder "auto", gilt F2 wie in MAME.
-  Der Menühinweis nennt die Taste. Tab öffnet das Menü nicht mehr (Tab ist
-  AdvanceMAMEs UI CONFIG).
-  Nur Grundfunktionen (der Rest steht in `redbaron.ini`). Seiten:
-  * STEUERUNG: Knüppel analog (Tasten und Digitalstick wirken zusätzlich)
-    oder digital, Empfindlichkeit (digital: wie schnell der gehaltene
-    Knüppel ausschlägt, `digital_rate`; analog: `gain`); Belegung von
-    Knüppelachsen, Richtungen, Feuer, Start, Münze (Feuer auf der Zeile,
-    dann Taste/Knopf/Achse; links/rechts zurück auf „auto" = advmame.rc);
-    hoch/runter umkehren. `platform/controls.c`. Daneben live der
-    Yoke-Test: Knüppel, wie das Spiel ihn bekommt (Kreuz), die
-    Analogachsen (Quadrat), Potiwerte, Feuer/Start/Münze.
-  * BILD: Zwischenbilder, Farben, Verdeckung, Bäume, Wolken, Cockpit,
-    Titel und Highscores, Gameplay im Attract, Helligkeit.
-  * TESTBILD: ein Gitter mit Rand und Kreis.
-  * TON: Lautstärke, Soundtest (Maschinengewehr, Explosion, Sturzflug,
-    POKEY-Ton).
-  * SPIELOPTIONEN: Flugzeuge, Bonus, Sprache, Münzen. Wirken sofort.
-  * HIGHSCORES LÖSCHEN (Feuer zweimal): Tabelle auf null (mit
-    `default_scores` wieder die Asse), die EAROM-Routine des Spiels schreibt
-    sie mit Prüfsummen (wie nach einem neuen Eintrag).
-* **Highscores im VectorPie-Menü** (Marquee, Hinweiszeile): `game.ini`
-  `hiscores = yes`; das Spiel schreibt seine Tafel (HSCRES, 7 Einträge, BCD
-  mal 10) zusätzlich als `save/highscores.txt` im Format des SDK
-  (`scores_text`/`scores_file` in `main.c`), sobald sie sich geändert hat,
-  nicht während der Initialeneingabe und nicht, solange das EAROM arbeitet;
-  neue Datei, dann umbenannt. Am PC geprüft (7 Asse in der Datei); ob das
-  Menü sie zeigt, ist am Automaten noch nicht gesehen (das Menü liest
-  `game.ini` womöglich erst nach seinem Neustart).
-* **Freispiel** (`coin_mode = free`, im Menü COINS: FREE PLAY; `main.c`).
-  Der Freispiel-Schalter der Platine setzt im Attract sofort zwei Credits
-  und bleibt für immer bei PRESS START stehen (CREDIT in RBARON.MAC), der
-  Attract läuft dann nicht mehr. Hier steht die Platine auf "1 Münze 1
-  Spiel"; START im Attract gibt dem Spiel die Münze (der Münzschalter
-  einen Puls lang) und hält START, bis das Spiel beginnt. Statt INSERT
-  COINS und CREDITS steht FREE PLAY und blinkend PRESS START (in der
-  Sprache des Spiels).
-* **Neue Bildschirme** (`screens = yes`; `render/screens.c`): Auf den
-  Seiten des Spiels selbst (GAMODE) andere Bilder desselben Zustands; was
-  das Spiel dort zeichnet (Kennung STATES), wird weggelassen.
-  * Titel statt Banner (GAMODE 13): Streifen gleiten herein, der Kreis
-    zeichnet sich, das Eiserne Kreuz dreht sich herein, der Adlerkopf
-    blendet ein, "Red Baron" schreibt sich in einer Fraktur-Hand (breite
-    Feder, beide Federkanten gezeichnet); danach alle 4 s ein Glanz über
-    den Schriftzug. Nach dem Flyer und dem Marquee.
-  * Highscore-Tafel (GAMODE x3): Überschrift fällt herein, zwei kleine
-    drehende Kreuze, die Zeilen gleiten nacheinander herein, Platz 1
-    wechselt die Farbe.
-  * Initialeneingabe (GAMODE x7): NEUER REKORD blinkend, Punkte und Platz,
-    drei Kästen (Buchstaben nach ihrer sichtbaren Breite mittig), der
-    gewählte rot mit Pfeilen, Hinweise in der Sprache des Spiels, ein
-    Balken für die verbleibende Zeit (TIMER). Bedient wird wie am Automaten
-    (Knüppel auf/ab ändert, Feuer übernimmt: LETCHK, STATES).
-  INSERT COINS und was eine Münze kauft rücken auf diesen Seiten nach unten.
-  Texte in der Schrift des Spiels (`render/glyph.c`: die Zeichenroutinen
-  des Vektor-ROMs einmal durch den Vektorgenerator gelaufen und als
-  Linien behalten, frei skalier- und neigbar; Bindestrich und Punkt fehlen
-  im Spiel).
-* **Asse in leerer Tafel** (`default_scores = yes`; `main.c`): Ist die
-  Tafel nach dem Einschalten leer (oder nach HIGHSCORES LÖSCHEN), stehen in
-  den leeren Plätzen MVR 20000, UDT 15000, LOE 12000, VOS 10000, BOE 8000,
-  IMM 6000, JAC 4000, immer unter dem letzten echten Eintrag; das EAROM
-  wird über die Routine des Spiels geschrieben. Damit zeigt der Attract
-  die Tafel (das Spiel tut das nur, wenn sie nicht leer ist).
-* **Cockpit** (`cockpit = yes`; `render/cockpit.c`): das Cockpit eines
-  Fokker Dr.I aus dem Sitz gesehen, nach einem Foto des Besitzers
-  (kleines 3D-Modell, Fluchtpunkt in der Bildmitte): zwei Spandau-MGs nah
-  an der Mitte, ihre Gehäuse auf dem Instrumentenbrett (Kühlmantel mit
-  Löchern, Mündung, Kimme, Korn, vorn Ringvisiere mit Fadenkreuz); der
-  Bug so breit wie der Rumpf (die MGs liegen oben drauf), davor der
-  Propeller schwach als Kreis und Blattschleier; der Mittelflügel links
-  und rechts, darauf je zwei Streben nach außen geneigt zur oberen
-  Tragfläche; zwei gekreuzte Spanndrähte, eine kleine Windschutzscheibe,
-  (Bug kurz, Propeller stilisiert wie im Film: an jeder Blattspitze ein
-  glatter Wischbogen, vorn hell, nach hinten auslaufend, dazu ein schwächerer
-  weiter innen, 27 Grad je Bild gedreht; kein Kreis; der Propeller des Spiels, drei Striche unten, fällt mit
-  Cockpit weg; der gepolsterte Rand ist wieder entfernt; unten bis in die
-  Ecken geschlossen, kein Blick nach draußen); das Instrumentenbrett mit
-  Höhenmesser
-  (I4YPOS), Fahrtmesser (schneller im Sturz: PLDELY) und
-  Waffenthermometer (GUN.ST, überhitzt blinkt es rot). Die MGs schlagen beim Feuern abwechselnd zurück, wie das
-  Spiel sie abwechselnd feuert (S.XFLG D6), mit Mündungsfeuer. Eigene
-  Verdeckung: Kanonen und Streben sind Körper aus Flächen, gezeichnet
-  werden nur die sichtbaren Kanten (Rückseiten weg, bei Rohren und Streben
-  nur der Umriss; was ein Teil vor einem anderen verdeckt, fällt weg). Die
-  Welt (Land, Berge, Flugzeuge, Zeppelin, Schüsse, der eigene Propeller)
-  und die Copyright-Zeile verschwinden hinter allen Teilen
-  (`rb_solid.front`); Texte und Anzeigen des Spiels bleiben davor, ebenso
-  die Kugeln: das Spiel lässt sie unten seitlich beginnen (etwa x +-200,
-  y -60), wo jetzt Flügel und Streben sind; verdeckt waren sie nicht mehr
-  zu sehen. Nur ein
-  Bild: am Spiel ändert sich nichts. Im Attract mit Welt auch sichtbar,
-  nicht auf Titel/Tafel/Eingabe.
-* **Aufgenommene Sounds** (`sounds = samples`, Testmenü SOUND → SOUNDS
-  RECORDINGS/ORIGINAL; `sound/samples.c`, Dateien in `package/sounds`,
-  geschnitten von `tools/make_sounds.py` aus Freesound-Aufnahmen in
-  `assets/freesound_raw`, Quellen in `package/sounds/CREDITS.txt`). Die
-  Aufnahmen hängen an denselben Signalen wie die Platine (Latch 1808 und
-  POKEY), am Spiel ändert sich nichts:
-  * eigener Motor: das Brummen (POKEY-Kanäle 3/4, AUDC A1) wird zum
-    Fokker-Doppeldecker (Hollywood-Lichtton der 30er, „G01-10 Fokker
-    Biplane Steady“, 14-s-Schleife mit Überblendung); im Sturz schneller
-    und lauter, im Steigen langsamer (PLDELY, wie der Fahrtmesser);
-    eigene Lautstärke `engine_volume` (Testmenü ENGINE VOLUME);
-  * anfliegender Gegner (AUDF3 unter F8): ein Nieuport mit Umlaufmotor,
-    höher und lauter, je höher der Ton des Originals steigt;
-  * MG: jedes Ansteigen des Schuss-Bits (15-mal je Sekunde) ein Einzelschuss
-    eines Maxim (die Waffe des LMG 08/15, 4 Varianten), beim Loslassen der
-    Nachhall; gegnerisches Feuer leiser und tiefer (eigenes Feuer: SWSTAT
-    D7 und nicht überhitzt);
-  * Explosion: der Crash-Pegel steigt → eine von 4 Explosionen, so laut wie
-    der Pegel;
-  * Spirale (D1): ein trudelndes Flugzeug, jedes anders: eine von drei
-    Aufnahmen (Warner-Brothers-Trudeln früh und spät, Sturzflug-Heulen),
-    Tonhöhe 0,9 bis 1,12, fällt um 15 bis 35 % in 3 bis 5 s, Einstieg an
-    zufälliger Stelle, wird beim Fallen leiser;
-  * Spirale und Explosion nach Entfernung: das getroffene Bewegungsobjekt
-    (PLOBDB, Status D6) mit X und Z, Lautstärke (400 / Abstand)^0,8
-    zwischen 0,2 und 1, in der Ferne dumpfer (Tiefpass bis etwa 800 Hz);
-    eigener Absturz (GMEND1 D7) voll, Bodenziele 0,6.
-  Die Jingles (Punkte, Bonusleben, neues Flugzeug, 300 Punkte) bleiben beim
-  POKEY. Die Kanäle 3/4 sind nur stumm, solange sie das Brummen tragen
-  (AUDC A1), ein Jingle darauf ist zu hören. Alle Dateien Mono (ein
-  Lautsprecher), Ogg Vorbis; 16 kHz für die alten Lichtton-Aufnahmen
-  (darüber nur Rauschen, gemessen), 32 kHz für das MG; zusammen 363 KB.
-  Soundtest im Menü: MACHINE GUN, EXPLOSION, NOSE DIVE, ENGINE, PLANE
-  CLOSING, POKEY TONE.
+## Checked
 
-## Geprüft
+Against MAME 0.289, 20 recordings (`tools/captures.sh`): attract mode,
+played games, long games with ground sequences and blimps, more than five
+lives, high score entry and its timing, four languages, option switches,
+coin modes, free play, slam, POKEY check.
 
-Gegen MAME 0.289, 20 Aufnahmen (`tools/captures.sh`): Attract, gespielte
-Partien, lange Partien mit Bodensequenzen und Zeppelinen, mehr als fünf
-Leben, Highscore-Eingabe und deren Zeitablauf, vier Sprachen,
-Optionsschalter, Münzmodi, Freispiel, Slam, POKEY-Prüfung.
-
-| Prüfung | Umfang | Ergebnis |
+| Check | Extent | Result |
 |---|---|---|
-| C-Routinen Frame für Frame (`checkall.sh`) | 60.689 Frames, 4.969 Bytes je Frame | alle gleich |
-| Originalprogramm auf dem 6502-Kern (`--emu`) | dieselben | alle gleich |
-| Interrupt-Routine und Einschalten in C gegen das Original (`--nmi`) | alle 20 Aufnahmen | alle gleich |
-| Gegenprobe: eine Konstante im C absichtlich verfälscht | 721 Frames | alle als abweichend gemeldet |
-| Spiel im Live-Betrieb ohne Bildschirm (`rbshot`), C und `--original` | 60 s mit Münze, Start, Schießen | beide 90 Punkte, beide danach in der Initialen-Eingabe |
-| Bild (`rbshot`, `docs/bilder`) | Attract und Spiel | Flugzeug, Horizont, Berge, Anzeigen, Texte wie erwartet |
-| Programmstart im Fenster | 6 s | 60 Bilder pro Sekunde, rund 340 Vektoren je Bild, 0,3 ms je Bild mit Zwischenbildern |
-| Zwischenbilder, t = 0 (`rbshot --smooth`) | 913 Frames einer gespielten Partie | in allen das Frame Wort für Wort |
-| Zwischenbilder, t = 1 gegen das nächste Frame (`_scratch/subdiag2.c`) | 512 Frames | bei gleicher Linienzahl 0,9 Einheiten Abstand je Linienende (Bildbreite 520); in der Hälfte der Frames kommen Linien dazu oder fallen weg (neue Schüsse, Objekte im Bild, Blinken): die wechseln im Takt der Frames |
-| Zwischenbilder am Bild (`rbshot --smooth --at`) | sechs Bilder in 100 ms | Flugzeuge wandern von Bild zu Bild |
-| Farbe und Verdeckung am Bild (`rbshot`, `docs/bilder/farbe_verdeckung.png`) | Attract-Flugzeug zu vier Zeitpunkten, Spielszenen | Rumpflinien hinter der Nase und Streben hinter den Flügeln verschwinden, Kanten bleiben; je Bild 14 bis 26 Linien geschnitten |
-| MAME-Vergleiche nach dem Einbau der Kennungen | alle 20 Aufnahmen | weiter alle gleich |
-| Explosion, Bodensequenz, Bäume, Wolken am Bild (`rbshot --capture` mit Frames aus `kills` und `long`) | 8 Frames | Teile rot, Bodenobjekte mehrfarbig, Berge verdecken Bäume und Wolken dahinter |
-| Nach den Ergänzungen: MAME-Vergleiche, Zwischenbilder bei t = 0 | alle 20 Aufnahmen, 605 Frames | weiter alle gleich |
-| Verdeckung durch Berge (`RB_FACES=1 rbshot` zeichnet die verdeckenden Flächen mit) | Attract und Bodensequenz | jeder Berg eine geschlossene Fläche vom Grat bis zum Fuß, deckungsgleich mit seinen Linien |
-| Knüppel: einmal rechts, dann losgelassen (`_scratch/pottrace.c`) | 10 s | ohne Kalibrierung PLDELX -30 auf Dauer, mit ihr zurück auf 0 |
+| C routines frame by frame (`checkall.sh`) | 60,689 frames, 4,969 bytes a frame | all the same (again with SDK 0.9.0, 2026-11-10) |
+| Original program on the 6502 core (`--emu`) | the same | all the same |
+| Interrupt routine and power on in C against the original (`--nmi`) | all 20 recordings | all the same |
+| Counter check: a constant in the C falsified on purpose | 721 frames | all reported as different |
+| Game in live operation without a screen (`rbshot`), C and `--original` | 60 s with coin, start, shooting | both 90 points, both in the initials entry afterwards |
+| Picture (`rbshot`, `docs/images`) | attract mode and game | plane, horizon, mountains, displays, texts as expected |
+| Program start in a window | 6 s | 60 pictures a second, about 340 vectors a picture, 0.3 ms a picture with pictures between frames |
+| Pictures between frames, t = 0 (`rbshot --smooth`) | 913 frames of a played game | in all of them the frame word for word |
+| Pictures between frames, t = 1 against the next frame (`_scratch/subdiag2.c`) | 512 frames | with the same number of lines 0.9 units apart per line end (picture width 520); in half of the frames lines come or go (new shots, objects in the picture, blinking): those change with the frames |
+| Pictures between frames on the picture (`rbshot --smooth --at`) | six pictures in 100 ms | planes move from picture to picture |
+| Color and occlusion on the picture (`rbshot`, `docs/images/color_occlusion.png`) | attract plane at four moments, game scenes | fuselage lines behind the nose and struts behind the wings vanish, edges stay; 14 to 26 lines cut per picture |
+| MAME comparisons after the tags went in | all 20 recordings | still all the same |
+| Explosion, ground sequence, trees, clouds on the picture (`rbshot --capture` with frames from `kills` and `long`) | 8 frames | parts colored, ground objects multicolored, mountains hide trees and clouds behind them |
+| After the additions: MAME comparisons, pictures between frames at t = 0 | all 20 recordings, 605 frames | still all the same |
+| Occlusion by mountains (`RB_FACES=1 rbshot` draws the hiding faces too) | attract mode and ground sequence | every mountain a closed face from ridge to foot, matching its lines |
+| Stick: once right, then let go (`_scratch/pottrace.c`) | 10 s | without calibration PLDELX -30 for good, with it back to 0 |
+| Recorded sounds in a played game (`rbshot --samples`) | 95 s | engine, 5 closing enemies, 439 own and 44 enemy shots, 6 explosions, 5 spirals begun; engine alone about -32 dB against -43 dB of the original hum, firing about -25 dB |
+| Distance of falling planes (`_scratch/crashvol.c`) | 240 s, 17 crashes | three spiral recordings in turn, near ones full, far ones 0.2 and dull |
+| Sound through the SDK stream (`_scratch/streamtest.c`) | 1.5 s POKEY tone | arrives in the SDK's mix (rms 0.039) |
 
-Abdeckung der C-Routinen durch die Aufnahmen (`tools/coverage.sh`):
-`math.c` und `alpha.c` 100 %, `display.c`, `main.c`, `grnd.c`, `int.c`
-über 99 %, `objects.c`, `ground.c`, `collide.c`, `coin.c`, `sound.c` über
-98 %, `vgut.c` 97 %, `earom.c` 93 %, `states.c` 91 %. Nicht durchlaufen:
-EAROM-Lesen mit gültiger Prüfsumme (die Aufnahmen starten mit leerem
-EAROM), Überträge in den Zählern für Spielanzahl und Spielzeit, Teile der
-Selbstanpassung der Schwierigkeit, der Sprung in den Selbsttest und
-einzelne seltene Zweige.
+Coverage of the C routines by the recordings (`tools/coverage.sh`):
+`math.c` and `alpha.c` 100 %, `display.c`, `main.c`, `grnd.c`, `int.c`
+over 99 %, `objects.c`, `ground.c`, `collide.c`, `coin.c`, `sound.c` over
+98 %, `vgut.c` 97 %, `earom.c` 93 %, `states.c` 91 %. Not run through:
+reading the EAROM with a valid checksum (the recordings start with an
+empty EAROM), carries in the counters for number of games and game time,
+parts of the difficulty's self adjustment, the jump into the self test and
+single rare branches.
 
-## Noch von niemandem gesehen oder gehört
+## Not yet seen or heard by anyone
 
-* **Das Spielfenster in Bewegung.** Zwei Standbilder sind geprüft, der
-  Start des Fensters auch. Gespielt hat es niemand.
-* **Der Ton.** POKEY und die diskreten Sounds erzeugen Pegel (gemessen an
-  einer WAV-Datei). Gehört hat ihn niemand; Klang und Lautstärken der
-  Teile zueinander sind MAMEs Modell entnommen, nicht abgeglichen.
-* **Die aufgenommenen Sounds.** Offline geprüft: `rbshot --samples`
-  rendert ein Spiel (95 s: Motor, 5 anfliegende Gegner, 439 eigene und 44
-  gegnerische Schüsse, 6 Explosionen, 5 Spiralen begonnen), Pegel
-  verglichen (Motor allein etwa -32 dB gegen -43 dB des Original-Brummens,
-  Feuern etwa -25 dB). Hörprobe: `docs/hoerprobe/` (neu und Original,
-  dasselbe Spiel). Am Automaten nicht gehört; die Lautstärken der Teile
-  zueinander (`*_GAIN` in `sound/samples.c`) sind nach Messung gesetzt,
-  nicht nach Gehör.
-* **Tastatur und Joystick.** Nur per Skript gefahren. Auf diesem PC sind
-  vier Joystick-Geräte angemeldet (darunter vJoy und ein Pedal); ob eines
-  davon den Knüppel verzieht, ist offen (der Steuerungstest zeigt es).
-* **Testmenü.** Am PC-Fenster per Skript durchgegangen (Seiten als
-  Bild geprüft, Belegen einer Taste, Start+Feuer-Halten, Speichern,
-  Optionen wirken live, Highscores löschen schreibt das EAROM). Der
-  Soundtest erzeugt Pegel (gemessen), gehört hat ihn niemand. Am Automaten
-  nicht bedient.
-* **Highscore-Datei.** Laden und Speichern sind geschrieben, aber nicht
-  über einen Neustart hinweg ausprobiert.
-* **Am Automaten gespielt.** Installiert und gestartet ist es
-  (2026-10-14, siehe unten), gespielt hat es dort noch niemand.
-* **Zwischenbilder in Bewegung.** Nur an Standbildern und Messwerten
-  geprüft. Wie Bodensequenz, Zeppelin und Absturz aussehen, ist ungesehen.
+* **The game window in motion.** Two still pictures are checked, the
+  window's start too. Nobody has played it at the screen.
+* **The sound.** POKEY and the discrete sounds make levels (measured in a
+  WAV file). The sound and the levels of the parts against each other come
+  from MAME's model, not tuned by ear.
+* **The recorded sounds.** Checked offline (above). Listen:
+  `docs/listen/` (new and original, the same game). The levels of the
+  parts against each other (`*_GAIN` in `sound/samples.c`) are set by
+  measurement, not by ear.
+* **The menu's volume with SDK 0.9.0 on the cabinet** (0.6.0 has not been
+  on the cabinet yet).
+* **Keyboard and joystick.** Only driven by script. Four joystick devices
+  are registered on this PC (among them vJoy and a pedal); whether one of
+  them pulls the stick is open (the control test shows it).
+* **Test menu.** Gone through by script on the PC window (pages checked as
+  pictures, binding a key, holding start+fire, saving, options taking
+  effect live, reset high scores writing the EAROM). Not used on the
+  cabinet.
+* **Pictures between frames in motion.** Only checked on still pictures
+  and measurements. How the ground sequence, the blimp and a crash look is
+  unseen.
 
-## Bekannte Abweichungen vom Automaten
+## Known differences from the cabinet
 
-* **Tempo.** Der Automat rechnet 10,25 Spielframes pro Sekunde (alle 24
-  Interrupts) und braucht für einen Frame bis zu 172.000 Zyklen, also
-  manchmal länger als die 147.456, die er hat. Das C braucht keine Zeit
-  und läuft immer mit 10,25. Im Banner des Attract-Modus sind es 20,5.
-* **Zufallszahlen.** Im Live-Betrieb aus einem eigenen Schieberegister,
-  nicht aus einem zyklusgenauen POKEY.
-* **Math Box.** Auf Routinen-Ebene wie in MAME, sofort fertig.
-* **Vektorgenerator.** Gilt im Live-Betrieb beim nächsten Interrupt als
-  fertig.
-* **Start-Knopf.** Bit 6 von 1802 liegt hier wie am Automaten bei
-  gedrücktem Knopf auf 0. MAMEs Port ist andersherum; dort startet das
-  Spiel von selbst, sobald ein Credit da ist.
-* **Münzzähler, Start-LED** sind nicht nach außen geführt.
+* **Speed.** The cabinet computes 10.25 game frames a second (every 24
+  interrupts) and needs up to 172,000 cycles for a frame, sometimes more
+  than the 147,456 it has. The C needs no time and always runs at 10.25.
+  In the attract mode's banner it is 20.5.
+* **Random numbers.** In live operation from a shift register of its own,
+  not from a cycle exact POKEY.
+* **Math Box.** As in MAME at the level of routines, done at once.
+* **Vector generator.** Counts as done at the next interrupt in live
+  operation.
+* **Start button.** Bit 6 of 1802 is 0 with the button pressed, as on the
+  cabinet. MAME's port is the other way round; there the game starts by
+  itself as soon as there is a credit.
+* **Coin counter, start LED** are not led out.
 
-## Am Automaten
+## On the cabinet
 
-Installiert mit `tools/deploy.sh` (nur kopieren) in `/persistent/games/rbenhanced`,
-Stand 2026-10-15 der aktuelle Build (0.5.1, mit den aufgenommenen Sounds in
-`sounds/`); gestartet wird er vom Besitzer aus dem Menü. Vektorplatine (USB-DVG), 60
-Bilder pro Sekunde; mit Cockpit, Bäumen, Wolken und Demo bis rund 700
-Vektoren (siehe Grenzen). Die ROMs kommen aus
-`/usr/local/share/advance/rom/redbaron.zip`. Marquee: `package/marquee.png`
-(1920x360, die Größe des HDMI-Marquee-Schirms; `advmame.rc` streckt mit
-`vector_aux_marquee_display_mode stretch`), vom Besitzer geliefert. Paket:
-`tools/make_vpk.sh` macht `build/rbenhanced-<Version>.vpk`; 0.5.1 liegt seit
-2026-10-16 im öffentlichen Google-Drive-Ordner „games“ (vom Besitzer
-geteilt, neben den anderen Paketen). Mit INSTALL GAMES installiert hat es
-noch niemand. Ob der Menüeintrag erscheint, ohne dass das Menü neu startet, ist nicht geprüft.
+Installed with `tools/deploy.sh` (copying only) in
+`/persistent/games/rbenhanced`, as of 2026-10-15 version 0.5.1 with the
+recorded sounds in `sounds/`; the owner starts it from the menu. Vector
+board (USB-DVG), 60 pictures a second; with cockpit, trees, clouds and
+demo up to about 700 vectors (see limits). The ROMs come from
+`/usr/local/share/advance/rom/redbaron.zip`. Marquee:
+`package/marquee.png` (1920x360, the size of the HDMI marquee screen;
+`advmame.rc` stretches with `vector_aux_marquee_display_mode stretch`),
+supplied by the owner. Package: `tools/make_vpk.sh` makes
+`build/rbenhanced-<version>.vpk`; 0.5.1 is in the public Google Drive
+folder "games" since 2026-10-16 (shared by the owner, next to the other
+packages) and a GitHub release since 2026-10-19. Nobody has installed it
+with INSTALL GAMES yet. Whether the menu entry appears without the menu
+restarting is not checked.
 
-## Bekannte Grenzen der Ergänzungen
+## Known limits of the additions
 
-* Zwischenbilder: Was neu ins Bild kommt oder verschwindet, Blinken,
-  Zähler und Texte wechseln wie im Original im Takt der Frames. Der
-  Knüppel wirkt erst mit dem nächsten Frame (wie im Original). Drehungen
-  werden geradlinig überblendet. Ein Frame, in dem der Spieler springt
-  (neues Spiel, neues Leben), wird nicht überblendet. Die Seiten ohne Welt
-  (Banner, Highscores) haben keine Zwischenbilder; bei Star Wars wandern
-  dort die Linien zum nächsten Frame, hier noch nicht.
-* Verdeckung: Drohnen, Zeppelin und Explosionsteile verdecken nichts.
-  Innerhalb eines Bergzugs (vier Stücke einer Landschaft, alle in einer
-  Entfernung) bleiben sich kreuzende Grate stehen. Linien ohne bekannte
-  Entfernung (Horizont) gelten als dahinter.
-* Bäume und Wolken kosten Zeit auf der Vektorplatine: rund 470 statt 340
-  Vektoren je Bild, der Leerweg verdoppelt sich etwa. Ob das Bild auf der
-  Röhre noch ruhig steht, ist am Automaten zu prüfen; sonst `trees = no`
-  oder weniger Bäume (`MAX_TREES` in `render/deco.c`).
-* Bäume stehen auch dort, wo in der Bodensequenz Berge herankommen (sie
-  gehören zu keinem Berg).
-* Am Bildrand erscheint ein Baum ganz, sobald seine Mitte im Bild ist (SETBM
-  des Spiels prüft nur die Mitte), also halb hereingeschoben.
-* Texte oben und Meldungen haben eigene Farben (Beschriftungen bernstein,
-  Punkte warmweiß, Wert grün, Highscore hellblau, INSERT COINS gold, was
-  eine Münze kauft violett, BONUS LIFE / 300 POINTS / BEHIND YOU rosa,
-  überhitzte Waffen rot, Leben rot): eigene Kennungen um die Aufrufe in
+* Pictures between frames: what comes into the picture or leaves it,
+  blinking, counters and texts change with the frames as in the original.
+  The stick takes effect with the next frame only (as in the original).
+  Turns are blended in a straight line. A frame in which the player jumps
+  (new game, new life) is not blended. The pages without the world
+  (banner, high scores) have no pictures between frames; in Star Wars the
+  lines wander to the next frame there, here not yet.
+* Occlusion: drones, blimp and explosion debris hide nothing. Within a
+  mountain range (four pieces of a landscape, all at one distance)
+  crossing ridges stay. Lines without a known distance (horizon) count as
+  behind.
+* Trees and clouds cost time on the vector board: about 470 instead of 340
+  vectors a picture, the blank moves about double. Whether the picture
+  stands still on the tube is to be checked on the cabinet; otherwise
+  `trees = no` or fewer trees (`MAX_TREES` in `render/deco.c`).
+* Trees also stand where mountains come near in the ground sequence (they
+  belong to no mountain).
+* At the edge of the picture a tree appears whole as soon as its middle is
+  in the picture (the game's SETBM checks only the middle), so half pushed
+  in.
+* Texts at the top and messages have colors of their own (labels amber,
+  score warm white, value green, high score light blue, INSERT COINS gold,
+  what a coin buys violet, BONUS LIFE / 300 POINTS / BEHIND YOU pink,
+  overheated guns red, lives red): tags of their own around the calls in
   ALPHAS.
-* Farben sind ein erster Vorschlag, mit dem Besitzer abzustimmen
-  (`render/color.c`, eine Tabelle).
-* Kalibrierung: gilt für die Werte, die der Port selbst erzeugt. Mit
-  `--original` (6502-Kern) nicht.
-* Testmenü: Eine Taste, die kürzer als ein Bild (1/60 s) gedrückt ist,
-  wird nicht gesehen (Tastaturzustand je Bild). Beim Belegen zählt eine
-  Taste erst, wenn vorher alles losgelassen war. Esc beendet außerhalb des
-  Belegens das Programm (SDK). Start+Feuer-Halten startet im Attract-Modus
-  bei Credit nebenbei ein Spiel.
-* Wolken liegen über den Texten (z. B. INSERT COINS), sie werden nicht
-  von ihnen verdeckt.
-* Cockpit: kostet Vektoren (rund 200 Linien mehr je Bild). Am Automaten
-  gemessen (2026-10-14): mit Cockpit, Bäumen, Wolken und Demo rund 700
-  Vektoren, Strahlweg rund 95 000 hell + 140 000 dunkel je Bild; die
-  USB-DVG schafft das nicht in 1/60 s, die Bildrate fällt nach einigen
-  Sekunden auf 30. Ohne Bäume/Wolken stabil 60. Die Rechenzeit ist es
-  nicht (unter 0,6 ms je Bild am PC). Ein Umsortieren der Linien nach
-  kürzestem Leerweg ist verboten (Besitzer: funktioniert praktisch nie,
-  das Bild wackelt) und wieder entfernt. Offen: weniger Linien/Details. Es verdeckt,
-  wie im echten Flugzeug, viel: unten das Brett, an den Seiten unterhalb
-  von etwa -70 den Mittelflügel; Ziele dort sind nicht zu sehen. Der
-  Fahrtmesser ist erfunden (das Spiel kennt keine Geschwindigkeit), er
-  folgt dem Steigen und Sinken. Das Armaturenbrett deckt den unteren Rand
-  (Copyright) ab, wie die Blende am Automaten. Der Propeller dreht sich
-  langsam wie im Film (ein echter wäre ein gleichmäßiger Schleier).
-* Titel: Die Seite dauert, so lange das Banner des Spiels flöge (rund
-  11 s); die Animation endet nicht weich, sie bricht mit dem Seitenwechsel
-  ab. Die Fraktur ist eine eigene Zeichnung nach dem Flyer, keine Schrift.
-* Freispiel: Die Münzen zählen in der Statistik des Spiels mit (EAROM,
-  Münzzähler). Das ursprüngliche Freispiel der Platine ist nicht mehr
-  wählbar.
-* Leeres EAROM (frische Installation): Bis die Lese-Routine des Spiels
-  fertig ist, steht als Highscore kurz „FFFF0" (wie am Automaten mit
-  leerem Baustein). HIGHSCORES LÖSCHEN im Testmenü schreibt ein gültiges.
+* The colors are a first proposal, to be tuned with the owner
+  (`render/color.c`, one table).
+* Calibration: applies to the readings the port makes itself. Not with
+  `--original` (6502 core).
+* Test menu: a key pressed shorter than a picture (1/60 s) is not seen
+  (keyboard state per picture). When binding, a key counts only if
+  everything was released before. Esc ends the program outside of binding
+  (SDK). Holding start+fire starts a game on the side in the attract mode
+  if there is a credit.
+* Clouds lie over the texts (e.g. INSERT COINS), they are not hidden by
+  them.
+* Cockpit: costs vectors (about 200 lines more a picture). Measured on
+  the cabinet (2026-10-14): with cockpit, trees, clouds and demo about 700
+  vectors, beam path about 95,000 lit + 140,000 dark a picture; the
+  USB-DVG cannot do that in 1/60 s, the picture rate drops to 30 after a
+  few seconds. Without trees/clouds a stable 60. It is not the computing
+  time (under 0.6 ms a picture on the PC). Reordering the lines by the
+  shortest blank move is forbidden (owner: practically never works, the
+  picture wobbles) and removed again. Open: fewer lines/details. It hides,
+  as in a real plane, a lot: the dashboard at the bottom, the middle wing
+  at the sides below about -70; targets there cannot be seen. The airspeed
+  indicator is made up (the game knows no speed), it follows climbing and
+  sinking. The dashboard covers the bottom edge (copyright), like the
+  bezel on the cabinet.
+* Title: the page lasts as long as the game's banner would fly (about
+  11 s); the animation does not end softly, it breaks off with the page
+  change. The Fraktur is a drawing of its own after the flyer, not a font.
+* Free play: the coins count in the game's statistics (EAROM, coin
+  counter). The board's original free play can no longer be chosen.
+* Empty EAROM (fresh installation): until the game's reading routine is
+  done, the high score briefly shows "FFFF0" (as on the cabinet with an
+  empty chip). RESET HIGH SCORES in the test menu writes a valid one.
+* Recorded sounds: the optical recordings hiss (not denoised, only cut
+  above 8 kHz). The own engine follows only climbing and sinking; there is
+  no throttle in the game. Whether a shot is the player's or the enemy's
+  is inferred from the fire button; if both fire at once everything sounds
+  like own fire. Explosion and spiral do not choose by what was hit
+  (plane, blimp, ground target), the game gives the same signal for all.
+  The distance counts only X and Z, not the height; ground targets have a
+  fixed volume (0.6), their place is not read.
+* The SDK mixes the game's stream at the menu's MUSIC VOLUME: with the
+  menu's music at 0 the game is silent too.
 
-* Aufgenommene Sounds: Die Lichtton-Aufnahmen rauschen (nicht
-  entrauscht, nur oberhalb 8 kHz abgeschnitten). Der eigene Motor folgt
-  nur Steigen und Sinken; Gas gibt es im Spiel nicht. Ob ein Schuss vom
-  Spieler oder vom Gegner kommt, wird aus dem Feuerknopf geschlossen;
-  feuern beide zugleich, klingt alles wie eigenes Feuer. Explosion und
-  Spirale wählen nicht nach dem, was getroffen ist (Flugzeug, Zeppelin,
-  Bodenziel), das Spiel gibt dafür dasselbe Signal. Die Entfernung zählt
-  nur X und Z, nicht die Höhe; Bodenziele haben eine feste Lautstärke
-  (0,6), ihre Lage wird nicht gelesen.
+## Not ported
 
-## Nicht portiert
+* The self test (RBINT.MAC from `RAMTST`). It checks hardware that does
+  not exist here, and its source is incomplete. With `--original` it runs
+  on the 6502 core (test switch not on any key yet).
+* The crash check in the interrupt (stack, lost frames) stops the program
+  here and reports it, instead of waiting for the watchdog.
 
-* Der Selbsttest (RBINT.MAC ab `RAMTST`). Er prüft Hardware, die es hier
-  nicht gibt, und sein Quelltext ist unvollständig. Mit `--original` läuft
-  er auf dem 6502-Kern (Testschalter noch auf keiner Taste).
-* Die Absturzprüfung im Interrupt (Stack, verlorene Frames) hält das
-  Programm hier an und meldet es, statt auf den Watchdog zu warten.
+## Open points
 
-## Offene Punkte
+1. Play, listen, try the joystick, look at the pictures between frames
+   (see above).
+2. Decide on and build more additions (see RESUME.md).
+3. Look at 0.6.0 on the cabinet: test menu, title, cockpit, free play, the
+   recorded sounds and the menu's volume; set the sounds' levels by ear.
+4. Install the `.vpk` with INSTALL GAMES on the cabinet and check it.
+5. Coverage: a recording with a filled EAROM (a second run without
+   clearing `_scratch/mame/nvram`).
 
-1. Spielen, Ton anhören, Joystick ausprobieren, Zwischenbilder ansehen
-   (siehe oben).
-2. Weitere Ergänzungen festlegen und bauen (siehe RESUME.md).
-3. 0.5.1 (kopiert 2026-10-15) ansehen; Testmenü, Titel, Cockpit, Freispiel und die
-   aufgenommenen Sounds am Automaten ansehen, anhören und bedienen
-   (Lautstärken der Sounds nach Gehör nachstellen).
-4. Das `.vpk` über INSTALL GAMES am Automaten installieren und prüfen.
-   0.5.2 (Highscores fürs Menü) ist gebaut (`build/rbenhanced-0.5.2.vpk`),
-   aber weder auf den Automaten kopiert noch in den Drive-Ordner geladen.
-5. Kein Git-Repository angelegt, nichts committet.
-6. Abdeckung: Aufnahme mit gefülltem EAROM (zweiter Lauf ohne Löschen von
-   `_scratch/mame/nvram`).
+## Next steps
 
-## Nächste Schritte
+See [RESUME.md](RESUME.md).
 
-Siehe [RESUME.md](RESUME.md).
-
-GitHub-Release (2026-10-19): `v0.5.1` mit demselben Paket wie im Google-Drive-Ordner `games`. Bei jedem neuen Paket im Drive auch ein Release anlegen (`gh release create v<version> <paket>.vpk`).
+Releases: every new package goes to the GitHub releases
+(`gh release create v<version> build/rbenhanced-<version>.vpk`) and to the
+owner's Google Drive folder "games". v0.5.1 (2026-10-19), v0.6.0
+(2026-11-10).

@@ -17,9 +17,9 @@
  * pitch falls as a capacitor charges.
  *
  * The machine's sound_write hook delivers the writes; rb_sound_run makes
- * the samples of the time that has passed, into a ring the sound device
- * reads from another thread. The cabinet has one speaker: both channels
- * carry the same.
+ * the samples of the time that has passed, into a ring that
+ * platform/audio.c hands to the SDK's stream. The cabinet has one speaker:
+ * both channels carry the same.
  *
  * With recordings (sound/samples.h, rb_sound_use_samples) they take the
  * place of the discrete circuits and of the POKEY's engine hum; the tunes

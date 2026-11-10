@@ -448,7 +448,7 @@ int main(int argc, char **argv)
                     if (!sound_test(&snd, test_sound, test_t)) test_sound = -1;
                 }
                 rb_sound_run(&snd, (int)((dt > 0.1 ? 0.1 : dt) * RB_CPU_CYCLES_PER_NMI * RB_NMI_HZ));
-                rb_audio_balance(&snd);
+                rb_audio_pump(&snd);
             }
         }
 
@@ -489,7 +489,7 @@ int main(int argc, char **argv)
                     rb_sound_run(&snd, RB_CPU_CYCLES_PER_NMI);
                 }
             }
-            if (have_sound) rb_audio_balance(&snd);
+            if (have_sound) rb_audio_pump(&snd);
 
             /* The EAROM was written (a high score, the game times): keep it,
              * once the program has been done with it for a moment. */

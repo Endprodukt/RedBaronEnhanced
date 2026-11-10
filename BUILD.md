@@ -1,9 +1,9 @@
-# Bauen und Prüfen
+# Building and checking
 
-## Einmalig holen
+## Fetch once
 
-Zwei Dinge gehören nicht zum Projekt und werden daneben geholt (beide
-stehen in `.gitignore`):
+Two things are not part of the project and are fetched next to it (both
+are in `.gitignore`):
 
 ```bash
 git clone --depth 1 https://github.com/historicalsource/red-baron.git upstream
@@ -13,14 +13,16 @@ git clone --depth 1 https://github.com/historicalsource/red-baron.git upstream
 git clone --depth 1 https://github.com/Goldfinch2/VectorPie.git external/VectorPie
 ```
 
-`upstream` ist der Originalquelltext (nur lesen). `external/VectorPie` ist
-das SDK für die Ausgabe. Ohne SDK lassen sich die Werkzeuge trotzdem bauen
+`upstream` is the original source code (read only). `external/VectorPie`
+is the SDK for the output (0.9.0 or later: the game's sound goes out as
+an SDK stream, `vp_stream_play`; 0.6.0 was built with VectorPie commit
+`b00d537`). Without the SDK the tools still build
 (`-DRB_BUILD_GAME=OFF`).
 
 ## PC (Windows)
 
-Voraussetzung: MSYS2 mit MinGW-w64-GCC und SDL2 unter `C:\msys64\mingw64`,
-dazu CMake und Ninja.
+Needs MSYS2 with MinGW-w64 GCC and SDL2 in `C:\msys64\mingw64`, plus
+CMake and Ninja.
 
 ```bash
 export PATH="/c/msys64/mingw64/bin:$PATH"
@@ -38,10 +40,10 @@ cmake --build build/pc
 build/pc/redbaron.exe --windowed --roms D:/Mame/roms
 ```
 
-## Die C-Routinen neu erzeugen
+## Generating the C routines again
 
-`src/game/*.c` (außer `frame.c`), `src/game/game.h` und
-`src/core/rb_symbols.h` werden aus `upstream/` erzeugt:
+`src/game/*.c` (except `frame.c`), `src/game/game.h` and
+`src/core/rb_symbols.h` are generated from `upstream/`:
 
 ```bash
 python -I tools/mac65.py --listing _scratch/rbaron.lst
@@ -51,25 +53,26 @@ python -I tools/mac65.py --listing _scratch/rbaron.lst
 python -I tools/mac2c.py
 ```
 
-Das erste assembliert den Quelltext, vergleicht mit den ROMs in `upstream/`
-und schreibt ein Listing mit allen Adressen. Das zweite schreibt die
-C-Dateien. Was der Übersetzer nicht nach Regel kann, steht in den Tabellen
-am Anfang von `tools/mac2c.py`.
+The first assembles the source, compares it with the ROMs in `upstream/`
+and writes a listing with every address. The second writes the C files.
+What the translator cannot do by rule is in the tables at the top of
+`tools/mac2c.py`.
 
-## Prüfen gegen MAME
+## Checking against MAME
 
-MAME 0.289 und sein ROM-Ordner: `$RB_MAME` (Vorgabe `D:/Mame/mame.exe`) und
-`$RB_MAME_ROMS` (Vorgabe `D:/Mame/roms`). MAME läuft ohne Bild und Ton mit
-einem eigenen Konfigurationsordner unter `_scratch/mame`. Die eigenen
-MAME-Einstellungen bleiben unberührt.
+MAME 0.289 and its ROM folder: `$RB_MAME` (default `D:/Mame/mame.exe`) and
+`$RB_MAME_ROMS` (default `D:/Mame/roms`). MAME runs without picture and
+sound with a configuration folder of its own in `_scratch/mame`. Your own
+MAME settings are not touched.
 
-Alle Standardaufnahmen neu machen (7 Minuten, 350 MB in `_scratch/cap`):
+Make all the standard recordings again (7 minutes, 350 MB in
+`_scratch/cap`):
 
 ```bash
 sh tools/captures.sh
 ```
 
-Alles vergleichen:
+Compare everything:
 
 ```bash
 sh tools/checkall.sh
@@ -83,13 +86,13 @@ sh tools/checkall.sh --emu
 sh tools/checkall.sh --nmi
 ```
 
-Ohne Option prüft das die C-Routinen Frame für Frame, mit `--emu` das
-Originalprogramm auf dem 6502-Kern, mit `--nmi` Interrupt-Routine und
-Einschalten in C gegen das Original auf dem Kern. Am Ende steht
-`ALL THE SAME` oder `DIFFERENCES`.
+Without an option this checks the C routines frame by frame, with `--emu`
+the original program on the 6502 core, with `--nmi` the interrupt routine
+and power on in C against the original on the core. At the end it says
+`ALL THE SAME` or `DIFFERENCES`.
 
-Eine einzelne Aufnahme (Skript: siehe `tools/mame/rbcapture.lua`, Zeiten
-in Spielframes):
+A single recording (script: see `tools/mame/rbcapture.lua`, times in game
+frames):
 
 ```bash
 sh tools/capture.sh _scratch/cap/test.rbcap 120 "60 coin 2;130 start 2;140 aim 3"
@@ -99,24 +102,23 @@ sh tools/capture.sh _scratch/cap/test.rbcap 120 "60 coin 2;130 start 2;140 aim 3
 build/pc/rbcompare.exe _scratch/cap/test.rbcap --show 20
 ```
 
-`rbcompare` kennt `--emu`, `--from F`, `--to F`, `--max N`, `--show N`,
-`--trace F` (die aufgezeichneten Lesezugriffe des Frames) und `--leftover`.
+`rbcompare` knows `--emu`, `--from F`, `--to F`, `--max N`, `--show N`,
+`--trace F` (the frame's recorded reads) and `--leftover`.
 
-### Wie der Vergleich arbeitet
+### How the comparison works
 
-Die Aufnahme enthält zu jedem Spielframe den Speicher des Originals in dem
-Moment, in dem die Hauptschleife in INTWAIT weiterläuft (RAM, Vektor-RAM,
-Math Box). Dazu kommt, was die Hauptschleife im Frame davor von außen
-bekam: die Zufallszahlen, ihre Lesezugriffe auf Speicher, den der
-Interrupt schreibt, und auf Schalter und EAROM. `rbcompare` lädt den
-Speicher eines Frames, lässt einen Frame laufen und vergleicht mit dem
-nächsten. Jeder Frame wird für sich geprüft.
+For every game frame the recording holds the original's memory at the
+moment the main loop goes on in INTWAIT (RAM, vector RAM, Math Box). With
+it comes what the main loop got from outside in the frame before: the
+random numbers, its reads of memory the interrupt writes, and of switches
+and EAROM. `rbcompare` loads a frame's memory, runs one frame and
+compares with the next. Every frame is checked on its own.
 
-Nicht verglichen werden die Adressen, die der Interrupt im jeweiligen
-Frame geschrieben hat (die Aufnahme nennt sie), und der Stack. Für den
-Interrupt selbst gibt es `rbnmi`.
+Not compared are the addresses the interrupt wrote in that frame (the
+recording names them) and the stack. For the interrupt itself there is
+`rbnmi`.
 
-## Abdeckung
+## Coverage
 
 ```bash
 cmake -S . -B build/cov -G Ninja -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DRB_BUILD_GAME=OFF -DCMAKE_BUILD_TYPE=Debug "-DCMAKE_C_FLAGS=--coverage -O0"
@@ -130,30 +132,29 @@ cmake --build build/cov
 sh tools/coverage.sh --lines
 ```
 
-## Bild und Ton ohne Bildschirm
+## Picture and sound without a screen
 
 ```bash
 build/pc/rbshot.exe --roms D:/Mame/roms --seconds 14 --play "3 coin;6 start;8 fire on;9 stick 0.3 -0.2" --svg _scratch/shots/play.svg --at 13 --wav _scratch/shots/play.wav
 ```
 
-Mit `--samples package/sounds` spielen die aufgenommenen Sounds statt der
-Schaltungen; am Ende steht, wie oft jeder begann.
+`magick -density 60 picture.svg picture.png` makes a PNG of it. Times in
+the script are seconds. With `--original` the original program runs on
+the core. At the end it prints the game mode, score, lives and the sound's
+level. With `--samples package/sounds` the recorded sounds play instead of
+the circuits; at the end it says how often each one began.
 
-Die Sounds selbst neu schneiden (aus `assets/freesound_raw`, braucht
-numpy, scipy, soundfile):
+Cutting the sounds again (from `assets/freesound_raw`, needs numpy, scipy,
+soundfile):
 
 ```bash
 py -3.10 -I tools/make_sounds.py
 ```
 
-`magick -density 60 bild.svg bild.png` macht daraus ein PNG. Zeiten im
-Skript sind Sekunden. Mit `--original` läuft das Originalprogramm auf dem
-Kern. Am Ende stehen Spielmodus, Punkte, Leben und der Pegel des Tons.
+## Cabinet (Raspberry Pi, VectorPie)
 
-## Automat (Raspberry Pi, VectorPie)
-
-Von Windows aus, ohne WSL: clang und lld vom PC gegen eine Kopie der
-Bibliotheken des Automaten (die des Tempest-2000-Ports). In Git Bash:
+From Windows, without WSL: clang and lld of the PC against a copy of the
+cabinet's libraries (those of the Tempest 2000 port). In Git Bash:
 
 ```bash
 export PATH="/c/Users/ocare/.local/share/retcomm/toolchains/cmake-clang-v1/latest/bin:$PATH"
@@ -171,25 +172,24 @@ cmake --build build/pi --target redbaron
 sh tools/deploy.sh
 ```
 
-Das Paket für die Installation über das Menü (INSTALL GAMES, vom USB-Stick
-oder aus `/persistent/games/packages/`):
+The package for installing from the menu (INSTALL GAMES, from a USB drive
+or from `/persistent/games/packages/`):
 
 ```bash
 sh tools/make_vpk.sh
 ```
 
-Es schreibt `build/rbenhanced-<Version>.vpk` (Programm, `game.ini`,
-`redbaron.ini`, Marquee, `sounds/`; keine ROMs) und setzt die Rechte im
-Archiv selbst (unter Windows hat das Dateisystem keine).
+It writes `build/rbenhanced-<version>.vpk` (program, `game.ini`,
+`redbaron.ini`, marquee, `sounds/`; no ROMs) and sets the file modes in
+the archive itself (on Windows the file system has none).
 
-`deploy.sh` kopiert Programm, `game.ini`, `redbaron.ini`, `run.sh`,
-`marquee.png` und `sounds/` nach `/persistent/games/rbenhanced` auf dem Automaten
-(192.168.0.122, Schlüssel `~/.ssh/id_ed25519_vectorpie`). Nur kopieren: was
-dort läuft, bleibt unberührt (ein laufendes Red Baron behält das alte
-Programm bis zum nächsten Start aus dem Menü). `sh tools/deploy.sh
---restart` beendet zusätzlich ein laufendes Red Baron und startet das neue
-(das Menü wird dabei gestoppt) – nur auf ausdrücklichen Wunsch des
-Besitzers. Die ROMs findet das
-Programm über `dir_rom` aus `advmame.rc` (dort liegt
-`/usr/local/share/advance/rom/redbaron.zip`). Eigene Einstellungen auf dem
-Automaten: `/persistent/games/rbenhanced/save/redbaron.ini`.
+`deploy.sh` copies the program, `game.ini`, `redbaron.ini`, `run.sh`,
+`marquee.png` and `sounds/` to `/persistent/games/rbenhanced` on the
+cabinet (192.168.0.122, key `~/.ssh/id_ed25519_vectorpie`). Copying only:
+what runs there is not touched (a running Red Baron keeps the old program
+until it is started again from the menu). `sh tools/deploy.sh --restart`
+also ends a running Red Baron and starts the new one (the menu is stopped
+meanwhile), only when the owner asks for it. The program finds the ROMs
+through `dir_rom` in `advmame.rc` (there:
+`/usr/local/share/advance/rom/redbaron.zip`). Your own settings on the
+cabinet: `/persistent/games/rbenhanced/save/redbaron.ini`.
